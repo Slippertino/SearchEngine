@@ -38,7 +38,7 @@ private:
     static const std::unordered_map<GumboTag, ratio_type> tag_text_priority;
     static const ratio_type default_tag_text_priority;
 
-	GumboOutput* output;
+    std::string content;
 
 private:
     bool is_valid_node(const GumboNode*) const;
@@ -53,6 +53,9 @@ private:
                         const language_automaton&,
                         double,
                         page_info&);
+    void crop_content();
+
+    void execute_parse(GumboOutput*, page_info&);
 
 public:
     html_text_analyzer() = delete;
@@ -60,7 +63,5 @@ public:
 
     html_text_analyzer operator= (const html_text_analyzer& g_h) = delete;
 
-    void parse(page_info&);
-
-    ~html_text_analyzer();
+    void run_parse(page_info&);
 };

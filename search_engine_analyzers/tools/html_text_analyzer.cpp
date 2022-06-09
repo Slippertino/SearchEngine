@@ -21,7 +21,7 @@ const std::unordered_map<GumboTag, html_text_analyzer::ratio_type> html_text_ana
 
 const html_text_analyzer::ratio_type html_text_analyzer::default_tag_text_priority = 1.0;
 
-html_text_analyzer::html_text_analyzer(const std::string& html_str) : output(gumbo_parse(html_str.c_str()))
+html_text_analyzer::html_text_analyzer(const std::string& html_str) : content(html_str)
 { }
 
 bool html_text_analyzer::is_valid_node(const GumboNode* node) const {
@@ -56,7 +56,38 @@ void html_text_analyzer::check_for_text(const text_automaton& text, const langua
         packet.text_excerpts.push_back({ temp, lang.get(), ratio  });
 }
 
-void html_text_analyzer::parse(page_info& packet) {
+void html_text_analyzer::crop_content() {
+    const auto tags = std::map<std::string, std::string>{ {"<script",   "</script>"  },
+                                                          {"<style",    "</style>"   },
+                                                          {"<button",   "</button>"  },
+                                                          {"<footer",   "</footer>"  },
+                                                          {"<noscript", "</noscript>"},
+                                                          {"<!--",      "-->"        } };
+    size_t off = 0;
+    while (true) {
+        std::pair<std::string, std::string> tag;
+        auto bpos = std::string::npos;
+
+        for (auto& p : tags) {
+            auto cur = content.find(p.first, off);
+
+            if (cur < bpos) {
+                bpos = cur;
+                tag = p;
+            }
+        }
+
+        if (bpos != std::string::npos) {
+            auto epos = content.find(tag.second, bpos);
+            off = bpos;
+            content.erase(bpos, epos + tag.second.size() - bpos);
+        }
+        else
+            break;
+    }
+}
+
+void html_text_analyzer::execute_parse(GumboOutput* output, page_info& packet) {
     encoding_automaton encoding;
     text_automaton text;
     link_automaton link;
@@ -94,6 +125,13 @@ void html_text_analyzer::parse(page_info& packet) {
     packet.page_encoding = encoding.get();
 }
 
-html_text_analyzer::~html_text_analyzer() {
+void html_text_analyzer::run_parse(page_info& packet) {
+    crop_content();
+
+    GumboOutput* output(gumbo_parse(content.c_str()));
+    packet.content = std::move(content);
+
+    execute_parse(output, packet);
+
     gumbo_destroy_output(&kGumboDefaultOptions, output);
 }

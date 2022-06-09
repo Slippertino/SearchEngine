@@ -51,37 +51,6 @@ private:
 		return true;
 	}
 
-	void crop_content(std::string& text) const {
-		const auto tags = std::map<std::string, std::string>{ {"<script",   "</script>"  },
-															  {"<style",    "</style>"   },
-															  {"<button",   "</button>"  },
-															  {"<footer",   "</footer>"  },
-															  {"<noscript", "</noscript>"},
-															  {"<!--",      "-->"        } };
-		size_t off = 0;
-		while (true) {
-			std::pair<std::string, std::string> tag;
-			auto bpos = std::string::npos;
-
-			for (auto& p : tags) {
-				auto cur = text.find(p.first, off);
-
-				if (cur < bpos) {
-					bpos = cur;
-					tag = p;
-				}
-			}
-
-			if (bpos != std::string::npos) {
-				auto epos = text.find(tag.second, bpos);
-				off = bpos;
-				text.erase(bpos, epos + tag.second.size() - bpos);
-			}
-			else
-				break;
-		}
-	}
-
 	bool is_valid_page(long code) const {
 		return cpr::status::is_success(code);
 	}
@@ -106,17 +75,20 @@ private:
 
 				cpr::Response resp_info;
 
+				size_t count(0);
 				do {
+					if (count) {
+						SE_LOG("Retrying to get info about : " << res.url << " ! Attempt: " << count << "\n");
+					}
+
 					resp_info = cpr::Get(cpr::Url(res.url));
-				} while (!handle_status_code(resp_info.status_code));
+					++count;
+				} while (!handle_status_code(resp_info.status_code) && count < 10000);
 
-				crop_content(resp_info.text);
-
-				res.content = resp_info.text;
 				res.status_code = resp_info.status_code;
 
-				html_text_analyzer analyzer(res.content);
-				analyzer.parse(res);
+				html_text_analyzer analyzer(resp_info.text);
+				analyzer.run_parse(res);
 
 				status.status = runtime_status::SUCCESS;
 				status.message = "Successful analysis of the page was carried out";
@@ -126,22 +98,33 @@ private:
 				status.message = ex.what();
 			}
 
+			SE_LOG("Url : " << res.url <<
+				   "; Code : " << res.status_code <<
+				   "; Result : " << status.to_string() << "\n"
+			);
+
 			info_storage.insert(res.url, { res, status });
 		}
 	}
 
 protected:
+	std::string get_component_name() const override {
+		return std::string("page_analyzer_service");
+	}
+
 	void clear() override {
 		info_storage.clear();
 		source      .clear();
 	}
 
 public:
-	pi_page_analyzer_service(const std::shared_ptr<se_router>& in_router) : se_service(in_router)
+	pi_page_analyzer_service(size_t id, const fs::path& root, const std::shared_ptr<se_router>& in_router) : 
+		se_service(id, root / R"(services)" / get_full_name(get_component_name()), in_router)
 	{ }
 
-	void setup(const configuration& config) override 
-	{ }
+	void setup(const configuration& config) override {
+		SE_LOG("Successful setup!\n");
+	}
 };
 
 template<>
@@ -160,5 +143,28 @@ protected:
 	void add_request_responders(const service_ptr& service) const override {
 		service->responders.insert(typeid(url_to_analyze_request).name(), 
 								   &pi_page_analyzer_service::url_to_analyze_request_responder);
+	}
+
+	void configure_logger(const service_ptr& service) const override {
+		auto logger = se_loggers_storage::get_instance()->get_logger(service->id);
+		auto name   = service->get_component_name();
+
+		logger->add_file(
+			se_logger::get_code(name),
+			name + std::string("_process"),
+			service->logger_path
+		);
+
+		logger->add_file(
+			se_logger::get_code(name, std::to_string(static_cast<size_t>(message_type::REQUEST))),
+			name + std::string("_requests"),
+			service->logger_path
+		);
+
+		logger->add_file(
+			se_logger::get_code(name, std::to_string(static_cast<size_t>(message_type::RESPONSE))),
+			name + std::string("_responses"),
+			service->logger_path
+		);
 	}
 };

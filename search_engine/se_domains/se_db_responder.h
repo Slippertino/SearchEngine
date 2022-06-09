@@ -9,7 +9,7 @@ template<typename q_builer>
 class se_db_responder
 {
 protected:
-	#define CONNECT(config) sql::mysql::get_driver_instance()->connect(config.get_db_url(), config.get_db_user_name(), config.get_db_password())
+	#define CONNECT(config) sql::mysql::get_mysql_driver_instance()->connect(config.get_db_url(), config.get_db_user_name(), config.get_db_password())
 
 	struct responder_components {
 		std::shared_ptr<sql::Connection> connection;

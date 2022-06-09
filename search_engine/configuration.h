@@ -105,4 +105,10 @@ public:
 			throw std::exception("Error while reading the configuration file!");
 		}
 	}
+
+	std::string get_dump() const {
+		nlohmann::json js;
+		nlohmann::to_json(js, configure_info);
+		return js.dump();
+	}
 };

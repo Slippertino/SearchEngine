@@ -4,13 +4,14 @@
 #include <thread_pool.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../configuration.h"
-#include "../se_domains/builders/builder.hpp"
+#include "../builders/builder.hpp"
 #include "se_services_infrastructure/se_services_communication.hpp"
-#include "se_api.h"
+#include "../se_component.h"
+#include "../se_logger_api.h"
 
 template<typename service_t>
 class se_service : public se_services_communication,
-				   public se_api
+				   public se_component
 {
 #define SE_SERVICE(service_name) \
 private: \
@@ -30,11 +31,23 @@ private: \
 	} \
 public: \
 	void run(size_t threads_count) override { \
-		disturbe_processes(this, threads_count); \
+		try { \
+			disturbe_processes(this, threads_count); \
+			SE_LOG("Service was successfully run with " << threads_count << " flows!\n"); \
+		} catch (const std::exception& ex) { \
+			SE_LOG("Error while trying to run service with " << threads_count << " flows! Message : " << ex.what() << "\n"); \
+			throw ex; \
+		} \
 	} \
 	void reset() override { \
-		se_services_communication::clear(); \
-		service_name::clear(); \
+		try { \
+			se_services_communication::clear(); \
+			service_name::clear(); \
+			SE_LOG("Service was successfully reset!\n"); \
+		} catch (const std::exception& ex) { \
+			SE_LOG("Error while trying to reset! " << "Message : " << ex.what() << "\n"); \
+			throw ex; \
+		} \
 	} \
 
 #define EXECUTE_CONTROLLED_WAITING(var_name, alias, expression) \
@@ -77,18 +90,58 @@ protected:
 	}
 
 	void get_request(std::pair<std::string, msg_request>& msg_info) {
-		EXECUTE_CONTROLLED_WAITING(msg_info, msg_info, try_get_request(msg_info))
+		try {
+			EXECUTE_CONTROLLED_WAITING(msg_info, msg_info, try_get_request(msg_info))
+			SE_LOG(message_type::REQUEST, "Received request : " << msg_info.second.body->to_string() << "\n");
+		} catch (const std::exception& ex) {
+			SE_LOG(message_type::REQUEST, "Error while trying to get request! Message : " << ex.what() << "\n");
+			throw ex;
+		}
 	}
 
 	template<typename context_t>
 	void get_response(const std::string& msg_id, context_t& body) {
-		EXECUTE_CONTROLLED_WAITING(body, body, try_get_response(msg_id, body))
+		try {
+			EXECUTE_CONTROLLED_WAITING(body, body, try_get_response(msg_id, body))
+			SE_LOG(message_type::RESPONSE, "Received response : " << body.to_string() << "\n");
+		} catch (const std::exception& ex) {
+			SE_LOG(message_type::RESPONSE, "Error while trying to get response with following body type: " << typeid(context_t).name()
+										<< "! Message : " << ex.what() << "\n");
+			throw ex;
+		}
+	}
+
+	template<typename context_t, typename... Args>
+	std::string make_request(Args&&... args) {
+		try {
+			auto body = std::make_shared<context_t>(std::forward<Args>(args)...);
+			auto msg_id = send_request<context_t>(std::ref(*body));
+			SE_LOG(message_type::REQUEST, "Sent request : " << body->to_string() << "\n");
+			return msg_id;
+		} catch (const std::exception& ex) {
+			SE_LOG(message_type::REQUEST, "Error while trying to make request with following body type: " << typeid(context_t).name()
+									   << "! Message : " << ex.what() << "\n");
+			throw ex;
+		}
+	}
+
+	template<typename context_t, typename... Args>
+	void make_response(std::string msg_id, Args&&... args) {
+		try {
+			auto body = std::make_shared<context_t>(std::forward<Args>(args)...);
+			send_response<context_t>(msg_id, std::ref(*body));
+			SE_LOG(message_type::RESPONSE, "Sent response : " << body->to_string() << "\n");
+		} catch (const std::exception& ex) {
+			SE_LOG(message_type::RESPONSE, "Error while trying to make response with following body type: " << typeid(context_t).name()
+										<< "! Message : " << ex.what() << "\n");
+			throw ex;
+		}
 	}
 
 	template<typename request_t, typename response_t, typename... Args>
 	void make_request_with_response(response_t& body, Args... args) {
-		auto id = make_request<request_t>(args...);
-		get_response<response_t>(id, body);
+		auto id = se_service<service_t>::make_request<request_t>(args...);
+		se_service<service_t>::get_response<response_t>(id, body);
 	}
 
 	template<typename T>
@@ -136,32 +189,38 @@ protected:
 		}
 	}
 
+	virtual std::string get_component_name() const override = 0;
+
 	virtual void clear() = 0;
 
 public:
 	se_service() = delete;
-	se_service(const std::shared_ptr<se_router>& in_router) : se_services_communication(in_router)
+	se_service(size_t id, const fs::path& path, const std::shared_ptr<se_router>& in_router) : 
+		se_component(id, path), 
+		se_services_communication(in_router)
 	{ }
 
 	bool status() const override {
-		return !pool.is_work_finished();
+		auto st = !pool.is_work_finished();
+		SE_LOG("Service successfully returned " << st << " as the status!\n");
+		return st;
 	}
 
 	void stop() override {
-		stop_flag = true;
-		pool.clear();
-		se_services_communication::clear();
-		std::cout << "бшьек!\n";
+		try {
+			stop_flag = true;
+			pool.clear();
+			se_services_communication::clear();
+			SE_LOG("Service was successfully stopped!\n");
+		} catch (const std::exception& ex) {
+			SE_LOG("Error while trying to stop! " << "Message : " << ex.what() << "\n");
+			throw ex;
+		}
 	}
 
-	virtual void run(size_t threads_count) override
-	{ }
-
-	virtual void setup(const configuration& config) override
-	{ }
-
-	virtual void reset() override 
-	{ }
+	virtual void run(size_t threads_count) override = 0;
+	virtual void setup(const configuration& config) override = 0;
+	virtual void reset() override = 0;
 
 	virtual ~se_service() = default;
 };

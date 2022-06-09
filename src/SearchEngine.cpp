@@ -13,18 +13,14 @@
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "semaphore.hpp"
 #include <nlohmann/json.hpp>
-#include "se_domains/builders/builder.hpp"
+#include "builders/builder.hpp"
 #include "configuration.h"
 #include <array>
-//#include "se_domains/se_page_indexing_domain/services/pi_page_dumper_service.h"
-#include "se_domains/se_page_indexing_domain/pi_domain.h"
-//#include "se_domains/se_services_infrastructure/se_services_communication.hpp"
-//#include "se_domains/se_page_indexing_domain/services/pi_page_dumper_service.h"
-
-
-using namespace std::chrono_literals;
+#include <regex>
+#include "search_engine.h"
 
 const char* configure_path = "..\\..\\..\\configuration.json";
+
 
 class polygon
 {
@@ -154,31 +150,7 @@ int main(int argc, char** argv) {
     configuration config;
     config.load(configure_path);
 
-    auto domain = builder<pi_domain>().build();
-    domain->setup(config);
-    domain->run(1000);
-    //std::this_thread::sleep_for(5000ms);
-
-    /*domain->stop();
-    std::cout << "ОСТАНОВКА!!!!\n";
-    std::this_thread::sleep_for(5000ms);
-
-    std::cout << "ЗАПУСК!!!!\n";
-    domain->run(200);*/
-
-
-    while (domain->status()) {
-        std::this_thread::sleep_for(20000ms);
-    }
-
-    /*std::this_thread::sleep_for(10000ms);
-
-    domain->stop();
-
-    std::cout << "\n\n\nОтдыхаем!\n\n\n";
-   
-    std::this_thread::sleep_for(10000ms);
-
-    std::cout << "\n\n\nПогнали!!\n\n\n";
-    domain->run(100);*/
+    auto engine = builder<search_engine>().build();
+    engine->setup(config);
+    engine->run(500);
 }

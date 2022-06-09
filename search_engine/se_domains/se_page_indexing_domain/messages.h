@@ -75,10 +75,8 @@ struct url_to_analyze_response : context
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(url_to_analyze_response,
 								   page_encoding,
-								   content,
 								   status_code,
 								   is_valid,
-								   linked_urls,
 								   status)
 	CONVERT_TO_STRING
 };
@@ -100,7 +98,6 @@ struct record_page_info_request : context
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(record_page_info_request,
 								   path,
-								   content,
 								   code)
 	CONVERT_TO_STRING
 };

@@ -12,6 +12,7 @@ protected:
 	virtual void add_subscriptions(const service_ptr& service) const = 0;
 	virtual void add_power_distribution(const service_ptr& service) const = 0;
 	virtual void add_request_responders(const service_ptr& service) const = 0;
+	virtual void configure_logger(const service_ptr& service) const = 0;
 
 public:
 	template<typename... Args>
@@ -21,6 +22,7 @@ public:
 		add_subscriptions(res);
 		add_power_distribution(res);
 		add_request_responders(res);
+		configure_logger(res);
 
 		return res;
 	}

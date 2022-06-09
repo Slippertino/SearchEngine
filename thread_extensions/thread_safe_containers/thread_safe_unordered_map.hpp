@@ -9,6 +9,7 @@ class thread_safe_unordered_map : public thread_safe_container<std::unordered_ma
 private:
 	using container = std::unordered_map<TKey, TValue>;
 	using tsum_const_iterator = typename container::const_iterator;
+	using tsum_iterator = typename container::iterator;
 
 public:
 	thread_safe_unordered_map() = default;
@@ -42,7 +43,17 @@ public:
 		return data_source.cend();
 	}
 
-	tsum_const_iterator find(const TKey& key) const {
+	tsum_iterator begin() {
+		std::lock_guard<std::mutex> locker(mut);
+		return data_source.begin();
+	}
+
+	tsum_iterator end() {
+		std::lock_guard<std::mutex> locker(mut);
+		return data_source.end();
+	}
+
+	tsum_iterator find(const TKey& key) {
 		std::lock_guard<std::mutex> locker(mut);
 		return data_source.find(key);
 	}
@@ -50,6 +61,12 @@ public:
 	void insert(const TKey& key, const TValue& value) {
 		std::lock_guard<std::mutex> locker(mut);
 		data_source.insert({ key, value });
+		cv.notify_all();
+	}
+
+	void insert(const TKey& key, TValue&& value) {
+		std::lock_guard<std::mutex> locker(mut);
+		data_source.insert({ key, std::move(value) });
 		cv.notify_all();
 	}
 

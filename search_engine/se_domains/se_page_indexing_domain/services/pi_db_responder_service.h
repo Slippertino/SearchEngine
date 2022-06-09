@@ -124,30 +124,52 @@ private:
 		auto db_name = config.get_db_name();
 
 		for (auto i = 0; i < pool.size(); ++i) {
-			auto con = std::shared_ptr<sql::Connection>(CONNECT(config));
-			con->setSchema(db_name);
+			try {
+				auto con = std::shared_ptr<sql::Connection>(CONNECT(config));
+				con->setSchema(db_name);
 
-			connections.add(con);
+				connections.add(con);
+			}
+			catch (std::exception& ex) {
+				SE_LOG(ex.what());
+			}
 		}
 
 		MAKE_REQUEST_WITH_RESPONSE(resp, init_database, (
-			resp, 
+			resp,
 			db_name
 		))
+
+		SE_LOG("Init result : " << resp.to_string() << "\n");
 	}
 
 protected:
+	std::string get_component_name() const override {
+		return std::string("db_responder_service");
+	}
+
 	void clear() override {
-		connections.clear();
+		while (!connections.empty()) {
+			std::shared_ptr<sql::Connection> con;
+			connections.wait_and_erase(con);
+			con->close();
+		}
 	}
 
 public:
 	pi_db_responder_service() = delete;
-	pi_db_responder_service(const std::shared_ptr<se_router>& in_router) : se_service(in_router)
+	pi_db_responder_service(size_t id, const fs::path& root, const std::shared_ptr<se_router>& in_router) :
+		se_service(id, root / R"(services)" / get_full_name(get_component_name()), in_router)
 	{ }
 
 	void setup(const configuration& config) override {
-		initialize(config);
+		try {
+			initialize(config);
+			SE_LOG("Successful setup!\n");
+		} catch (const std::exception& ex) {
+			SE_LOG("Unsuccessful setup! " << ex.what() << "\n");
+			throw ex;
+		}
 	}
 };
 
@@ -176,5 +198,28 @@ protected:
 								   &pi_db_responder_service::record_page_info_request_responder);
 		service->responders.insert(typeid(site_recording_request).name(),
 								   &pi_db_responder_service::sites_list_recording_request_responder);
+	}
+
+	void configure_logger(const service_ptr& service) const override {
+		auto logger = se_loggers_storage::get_instance()->get_logger(service->id);
+		auto name   = service->get_component_name();
+
+		logger->add_file(
+			se_logger::get_code(name),
+			name + std::string("_process"),
+			service->logger_path
+		);
+
+		logger->add_file(
+			se_logger::get_code(name, std::to_string(static_cast<size_t>(message_type::REQUEST))),
+			name + std::string("_requests"),
+			service->logger_path
+		);
+
+		logger->add_file(
+			se_logger::get_code(name, std::to_string(static_cast<size_t>(message_type::RESPONSE))),
+			name + std::string("_responses"),
+			service->logger_path
+		);
 	}
 };

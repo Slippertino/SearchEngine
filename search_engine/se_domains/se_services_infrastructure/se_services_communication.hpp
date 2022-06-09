@@ -41,14 +41,14 @@ protected:
 	}
 
 	template<typename context_t, typename... Args>
-	std::string make_request(Args&&... args) {
+	std::string send_request(Args&&... args) {
 		return router->send_message<message_type::REQUEST, context_t>(
 			std::make_shared<context_t>(std::forward<Args>(args)...)
 		);
 	}
 
 	template<typename context_t, typename... Args>
-	void make_response(std::string id, Args&&... args) {
+	void send_response(std::string id, Args&&... args) {
 		router->send_message<message_type::RESPONSE, context_t>(
 			std::make_shared<context_t>(std::forward<Args>(args)...),
 			id
