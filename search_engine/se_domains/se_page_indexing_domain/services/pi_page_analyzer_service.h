@@ -14,6 +14,8 @@ class pi_page_analyzer_service : public se_service<pi_page_analyzer_service>
 	SE_SERVICE(pi_page_analyzer_service)
 
 private:
+	static const size_t max_rejected_requests;
+
 	thread_safe_unordered_map<decltype(html_text_analyzer::page_info::url), 
 							  std::pair<html_text_analyzer::page_info, response_status>> info_storage;
 
@@ -36,7 +38,7 @@ private:
 			info.first.page_encoding, 
 			info.first.content,
 			info.first.status_code,
-			is_valid_page(info.first.status_code),
+			is_valid_page(info.first) && is_successful_analysis(info.second),
 			info.first.linked_urls,
 			info.second
 		))
@@ -44,15 +46,20 @@ private:
 
 	bool handle_status_code(long status_code) const {
 		if (status_code == cpr::status::HTTP_TOO_MANY_REQUESTS || !status_code) {
-			std::this_thread::sleep_for(100ms);
+			std::this_thread::sleep_for(1s);
 			return false;
 		}
 
 		return true;
 	}
 
-	bool is_valid_page(long code) const {
-		return cpr::status::is_success(code);
+	bool is_successful_analysis(response_status status) {
+		return status.status == runtime_status::SUCCESS;
+	}
+
+	bool is_valid_page(const html_text_analyzer::page_info& info) const {
+		return cpr::status::is_success(info.status_code) && 
+			   info.page_encoding != encoding_t::UNKNOWN;
 	}
 
 	void page_analyze_handler()
@@ -65,7 +72,7 @@ private:
 
 			pool.set_inactive(std::this_thread::get_id());
 			extract_from_ts_queue(source, req);
-			if (stop_flag && !req)
+			if (stop_flag && !req || info_storage.find(req->url) != info_storage.end())
 				continue;
 			pool.set_active(std::this_thread::get_id());
 
@@ -78,12 +85,17 @@ private:
 				size_t count(0);
 				do {
 					if (count) {
-						SE_LOG("Retrying to get info about : " << res.url << " ! Attempt: " << count << "\n");
+						SE_LOG("Retrying to get info about : " << res.url 
+							<< " ! Previous code: " << resp_info.status_code 
+							<< "; Attempt: " << count << "\n");
 					}
 
 					resp_info = cpr::Get(cpr::Url(res.url));
 					++count;
-				} while (!handle_status_code(resp_info.status_code) && count < 10000);
+				} while (!handle_status_code(resp_info.status_code) && count < max_rejected_requests);
+
+				if (count >= max_rejected_requests)
+					throw std::exception("Too many attempts to get information!\n");
 
 				res.status_code = resp_info.status_code;
 
@@ -126,6 +138,8 @@ public:
 		SE_LOG("Successful setup!\n");
 	}
 };
+
+const size_t pi_page_analyzer_service::max_rejected_requests = 50;
 
 template<>
 class builder<pi_page_analyzer_service> : public abstract_service_builder<pi_page_analyzer_service>

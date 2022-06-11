@@ -4,6 +4,7 @@
 #include "se_services_infrastructure/se_router.hpp"
 #include "../configuration.h"
 #include "../builders/builder.hpp"
+#include "../se_logger_api.h"
 
 namespace fs = std::filesystem;
 
@@ -71,64 +72,88 @@ public:
 	{ }
 
 	bool status() const override {
-		if (is_flag_set(status_flags::SETUP)) {
-			bool flag = false;
-			EXECUTE_FOR_SERVICES(flag |= ALIAS.first->status())
-			return flag;
-		} else {
-			throw std::exception((typeid(domain_t).name() +
-								  std::string(" has not been setup yet")).c_str());
+		try {
+			if (is_flag_set(status_flags::SETUP)) {
+				bool flag = false;
+				EXECUTE_FOR_SERVICES(flag |= ALIAS.first->status())
+				SE_LOG("Domain successfully returned " << flag << " as the status!\n");
+				return flag;
+			} else {
+				throw std::exception((typeid(domain_t).name() +
+						   std::string(" has not been setup yet")).c_str());
+			}
+		} catch (const std::exception& ex) {
+			SE_LOG("Error while trying to get status! Message : " << ex.what() << "\n");
 		}
 	}
 
 	void run(size_t threads_count) override {
-		std::lock_guard<std::mutex> locker(using_api_limiter);
-		if (is_flag_set(status_flags::SETUP) &&
-			!is_flag_set(status_flags::RUN)) {
-			size_t total(0);
-			EXECUTE_FOR_SERVICES(total += ALIAS.second)
-			EXECUTE_FOR_SERVICES(ALIAS.first->run(static_cast<size_t>(threads_count / total) * ALIAS.second))
-			set_flag(status_flags::RUN);
-			services_control_process = std::thread(&se_domain::control_services, this);
-		}
-		else {
-			throw std::exception((typeid(domain_t).name() +
-				std::string(" has not benn setup or has been run yet")).c_str());
+		try {
+			std::lock_guard<std::mutex> locker(using_api_limiter);
+			if (is_flag_set(status_flags::SETUP) &&
+				!is_flag_set(status_flags::RUN)) {
+				size_t total(0);
+				EXECUTE_FOR_SERVICES(total += ALIAS.second)
+				EXECUTE_FOR_SERVICES(ALIAS.first->run(static_cast<size_t>(threads_count / total) * ALIAS.second))
+				set_flag(status_flags::RUN);
+				services_control_process = std::thread(&se_domain::control_services, this);
+				SE_LOG("Domain was successfully run with " << threads_count << " flows!\n"); \
+			} else {
+				throw std::exception((typeid(domain_t).name() +
+						   std::string(" has not benn setup or has been run yet")).c_str());
+			}
+		} catch (const std::exception& ex) {
+			SE_LOG("Error while trying to run domain with " << threads_count << " flows! Message : " << ex.what() << "\n");
 		}
 	}
 
 	void stop() override {
-		std::lock_guard<std::mutex> locker(using_api_limiter);
-		if (is_flag_set(status_flags::RUN)) {
-			remove_flag(status_flags::RUN);
-			services_control_process.join();
-		} else {
-			throw std::exception((typeid(domain_t).name() +
-								  std::string(" has not been run yet")).c_str());
+		try {
+			std::lock_guard<std::mutex> locker(using_api_limiter);
+			if (is_flag_set(status_flags::RUN)) {
+				remove_flag(status_flags::RUN);
+				services_control_process.join();
+				SE_LOG("Domain was successfully stopped!\n");
+			} else {
+				throw std::exception((typeid(domain_t).name() +
+						   std::string(" has not been run yet")).c_str());
+			}
+		} catch (const std::exception& ex) {
+			SE_LOG("Error while trying to stop! " << "Message : " << ex.what() << "\n");
 		}
 	}
 
 	void setup(const configuration& config) override {
-		std::lock_guard<std::mutex> locker(using_api_limiter);
-		if (!is_flag_set(status_flags::SETUP)) {
-			EXECUTE_FOR_SERVICES(ALIAS.first->setup(config))
-			set_flag(status_flags::SETUP);
-		} else {
-			throw std::exception((typeid(domain_t).name() +
-								  std::string(" has already been setup")).c_str());
+		try {
+			std::lock_guard<std::mutex> locker(using_api_limiter);
+			if (!is_flag_set(status_flags::SETUP)) {
+				EXECUTE_FOR_SERVICES(ALIAS.first->setup(config))
+				set_flag(status_flags::SETUP);
+				SE_LOG("Domain was successfully setup!\n");
+			} else {
+				throw std::exception((typeid(domain_t).name() +
+					       std::string(" has already been setup")).c_str());
+			}
+		} catch (const std::exception& ex) {
+			SE_LOG("Error while trying to setup! " << "Message : " << ex.what() << "\n");
 		}
 	}
 
 	void reset() override {
-		std::lock_guard<std::mutex> locker(using_api_limiter);
-		if (is_flag_set(status_flags::SETUP)) {
-			remove_all_flags();
-			if (services_control_process.joinable())
-				services_control_process.join();
-			EXECUTE_FOR_SERVICES(ALIAS.first->reset())
-		} else {
-			throw std::exception((typeid(domain_t).name() + 
-								  std::string(" has not benn setup yet")).c_str());
+		try {
+			std::lock_guard<std::mutex> locker(using_api_limiter);
+			if (is_flag_set(status_flags::SETUP)) {
+				remove_all_flags();
+				if (services_control_process.joinable())
+					services_control_process.join();
+				EXECUTE_FOR_SERVICES(ALIAS.first->reset())
+				SE_LOG("Domain was successfully reset!\n");
+			} else {
+				throw std::exception((typeid(domain_t).name() +
+					std::string(" has not benn setup yet")).c_str());
+			}
+		} catch (const std::exception& ex) {
+			SE_LOG("Error while trying to reset! " << "Message : " << ex.what() << "\n");
 		}
 	}
 

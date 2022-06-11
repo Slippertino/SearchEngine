@@ -30,7 +30,7 @@ protected:
 
 public:
 	search_engine() : se_component(++id_automaton,
-								   logs_root / fs::path(get_full_name(get_component_name())))
+								   logs_root / fs::path(get_full_name(get_component_name() + std::to_string(rand() % 10000) + "_")))
 	{ }
 
 	void run(size_t threads_count) override {

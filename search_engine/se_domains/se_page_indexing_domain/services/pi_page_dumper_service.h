@@ -21,24 +21,30 @@ private:
 	thread_safe_queue<std::string> keys;
 	thread_safe_unordered_map<std::string, std::pair<std::string, std::string>> source;
 
+	thread_safe_unordered_map<std::string, nullptr_t> cache;
+
 	semaphore semaphore;
+
+	std::mutex mutex;
 
 private:
 	void add_to_buffer(const std::pair<std::string, std::string>& link_prefix) {
 		static std::mutex record_locker;
 		std::pair<std::string, std::string> l_p;
-		
-		if (!source.try_get(link_prefix.first, l_p) && record_locker.try_lock()) {
-			if (!link_prefix.first.empty() && 
-				!link_prefix.second.empty() &&
-				source.find(link_prefix.first) == source.cend()) {
-				keys.add(link_prefix.first);
-				source.insert(link_prefix.first, link_prefix);
 
-				SE_LOG("Added to buffer: " << link_prefix.first << "\n");
+		while (!source.try_get(link_prefix.first, l_p)){
+			if (record_locker.try_lock()) {
+				if (!link_prefix.first.empty() &&
+					!link_prefix.second.empty() &&
+					source.find(link_prefix.first) == source.cend()) {
+					keys.add(link_prefix.first);
+					source.insert(link_prefix.first, link_prefix);
+
+					SE_LOG("Added to buffer: " << link_prefix.first << "\n");
+					record_locker.unlock();
+					break;
+				}
 			}
-
-			record_locker.unlock();
 		}
 	}
 
@@ -46,10 +52,25 @@ private:
 		std::string key;
 
 		extract_from_ts_queue(keys, key);
-		extract_from_ts_unordered_map(source, key, link_prefix);
+		get_from_ts_unordered_map(source, key, link_prefix);
 
-		SE_LOG("Extracted from buffer: " << "{ " << link_prefix.first << " ; " 
-										         << link_prefix.second << " }" << "\n");
+		SE_LOG("Gotten from buffer: " << "{ " << link_prefix.first << " ; "
+			<< link_prefix.second << " }" << "\n");
+	}
+
+	void extract_from_buffer(std::pair<std::string, std::string>& link_prefix) {
+		extract_from_ts_unordered_map(source, link_prefix.first, link_prefix);
+
+		SE_LOG("Extracted from buffer: " << "{ " << link_prefix.first << " ; "
+				<< link_prefix.second << " }" << "\n");
+	}
+
+	void add_to_cache(const std::string& url) {
+		cache.insert(url, nullptr);
+
+		if (cache.size() > 100000) {
+			cache.clear();
+		}
 	}
 
 	bool check_for_stop(const std::pair<std::string, std::string>& link_prefix) {
@@ -73,7 +94,7 @@ private:
 			pool.set_active(std::this_thread::get_id());
 
 			semaphore.enter(1);
-
+			extract_from_buffer(link_prefix);
 			MAKE_REQUEST_WITH_RESPONSE(result, is_unique_page_url, 
 				(result, link_prefix.first)) 
 			CHECK_FOR_STOP(link_prefix)
@@ -103,6 +124,12 @@ private:
 
 			semaphore.exit();
 
+			mutex.lock();
+			std::cout << link_prefix.first << " | " << "Size: " << source.size() << " | "
+				<< "Concurrency: " << pool.get_active_processes_count() << " | "
+				<< "Thread: " << std::this_thread::get_id() << "\n";
+			mutex.unlock();
+
 			SE_LOG(link_prefix.first << " | " << "Size: " << source.size() << " | "
 									 << "Concurrency: " << pool.get_active_processes_count() << " | "
 									 << "Thread: " << std::this_thread::get_id() << "\n");
@@ -114,10 +141,14 @@ private:
 			for (auto s : page_info.linked_urls) {
 				coder.decode(s);
 				auto url = url_analyzer(s, link_prefix.second).convert_to_url();
-				add_to_buffer({
-					url, 
-					link_prefix.second 
-				});
+
+				if (cache.find(url) == cache.end()) {
+					add_to_buffer({
+						url,
+						link_prefix.second
+					});
+					add_to_cache(url);
+				}
 			}
 			semaphore.exit();
 		}

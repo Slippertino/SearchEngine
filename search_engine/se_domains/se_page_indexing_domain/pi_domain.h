@@ -40,7 +40,7 @@ protected:
 		auto name   = domain->get_component_name();
 
 		logger->add_file(
-			se_logger::get_code(std::string(typeid(pi_domain).name())),
+			se_logger::get_code(name),
 			name + std::string("_process"),
 			domain->logger_path
 		);

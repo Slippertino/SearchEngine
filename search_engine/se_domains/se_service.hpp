@@ -94,8 +94,8 @@ protected:
 			EXECUTE_CONTROLLED_WAITING(msg_info, msg_info, try_get_request(msg_info))
 			SE_LOG(message_type::REQUEST, "Received request : " << msg_info.second.body->to_string() << "\n");
 		} catch (const std::exception& ex) {
+			std::cout << "Error while trying to get request! Message : " << ex.what() << "\n";
 			SE_LOG(message_type::REQUEST, "Error while trying to get request! Message : " << ex.what() << "\n");
-			throw ex;
 		}
 	}
 
@@ -105,9 +105,10 @@ protected:
 			EXECUTE_CONTROLLED_WAITING(body, body, try_get_response(msg_id, body))
 			SE_LOG(message_type::RESPONSE, "Received response : " << body.to_string() << "\n");
 		} catch (const std::exception& ex) {
+			std::cout << "Error while trying to get response with following body type: " << typeid(context_t).name()
+					  << "! Message : " << ex.what() << "\n";
 			SE_LOG(message_type::RESPONSE, "Error while trying to get response with following body type: " << typeid(context_t).name()
 										<< "! Message : " << ex.what() << "\n");
-			throw ex;
 		}
 	}
 
@@ -119,9 +120,10 @@ protected:
 			SE_LOG(message_type::REQUEST, "Sent request : " << body->to_string() << "\n");
 			return msg_id;
 		} catch (const std::exception& ex) {
+			std::cout << "Error while trying to make request with following body type: " << typeid(context_t).name()
+					  << "! Message : " << ex.what() << "\n";
 			SE_LOG(message_type::REQUEST, "Error while trying to make request with following body type: " << typeid(context_t).name()
 									   << "! Message : " << ex.what() << "\n");
-			throw ex;
 		}
 	}
 
@@ -132,9 +134,10 @@ protected:
 			send_response<context_t>(msg_id, std::ref(*body));
 			SE_LOG(message_type::RESPONSE, "Sent response : " << body->to_string() << "\n");
 		} catch (const std::exception& ex) {
+			std::cout << "Error while trying to make response with following body type: " << typeid(context_t).name()
+				      << "! Message : " << ex.what() << "\n";
 			SE_LOG(message_type::RESPONSE, "Error while trying to make response with following body type: " << typeid(context_t).name()
 										<< "! Message : " << ex.what() << "\n");
-			throw ex;
 		}
 	}
 

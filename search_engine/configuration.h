@@ -23,6 +23,8 @@ private:
 
 public:
 	configuration() = default;
+	configuration(const configuration& config) = default;
+	configuration& operator=(const configuration& config) = default;
 
 	void load(const std::string& path)
 	{
@@ -58,6 +60,11 @@ public:
 		}
 	}
 
+	configuration& set_db_url(const std::string& url) {
+		configure_info.database["url"] = url;
+		return *this;
+	}
+
 	std::string get_db_user_name() const {
 		if (!is_filled)
 			return std::string();
@@ -68,6 +75,11 @@ public:
 		catch (...) {
 			throw std::exception("Error while reading the configuration file!");
 		}
+	}
+
+	configuration& set_db_user_name(const std::string& name) {
+		configure_info.database["user_name"] = name;
+		return *this;
 	}
 
 	std::string get_db_password() const {
@@ -82,6 +94,11 @@ public:
 		}
 	}
 
+	configuration& set_db_password(const std::string& pass) {
+		configure_info.database["password"] = pass;
+		return *this;
+	}
+
 	std::string get_db_name() const {
 		if (!is_filled)
 			return std::string();
@@ -94,6 +111,11 @@ public:
 		}
 	}
 
+	configuration& set_db_name(const std::string& name) {
+		configure_info.database["database_name"] = name;
+		return *this;
+	}
+
 	std::vector<std::string> get_sources() const {
 		if (!is_filled)
 			return {};
@@ -104,6 +126,11 @@ public:
 		catch (...) {
 			throw std::exception("Error while reading the configuration file!");
 		}
+	}
+
+	configuration& set_db_sources(std::initializer_list<std::string>&& list) {
+		configure_info.sources = std::move(list);
+		return *this;
 	}
 
 	std::string get_dump() const {

@@ -7,6 +7,8 @@
 class url_analyzer
 {
 private:
+	static const std::vector<std::regex> forbidden_patterns;
+
 	std::string source;
 	std::string root;
 
