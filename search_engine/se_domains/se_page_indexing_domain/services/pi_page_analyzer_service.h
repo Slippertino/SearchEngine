@@ -21,8 +21,6 @@ private:
 
 	thread_safe_queue<url_to_analyze_request*> source;
 
-	std::mutex mutex;
-
 private:
 	void url_to_analyze_request_responder(msg_request msg) {
 		auto req = static_cast<url_to_analyze_request*>(msg.body.get());
@@ -40,6 +38,22 @@ private:
 			info.first.status_code,
 			is_valid_page(info.first) && is_successful_analysis(info.second),
 			info.first.linked_urls,
+			info.second
+		))
+	}
+
+	void page_info_request_responder(msg_request msg) {
+		auto req = static_cast<page_info_request*>(msg.body.get());
+
+		std::pair<html_text_analyzer::page_info, response_status> info;
+		extract_from_ts_unordered_map(info_storage, req->url, info);
+		if (stop_flag)
+			return;
+
+		MAKE_RESPONSE(page_info, (
+			msg.id,
+			info.first.page_encoding,
+			info.first.text_excerpts,
 			info.second
 		))
 	}
@@ -147,6 +161,7 @@ class builder<pi_page_analyzer_service> : public abstract_service_builder<pi_pag
 protected:
 	void add_subscriptions(const service_ptr& service) const override {
 		service->router->subscribe<url_to_analyze_request>(service);
+		service->router->subscribe<page_info_request>(service);
 	}
 
 	void add_power_distribution(const service_ptr& service) const override {
@@ -157,9 +172,11 @@ protected:
 	void add_request_responders(const service_ptr& service) const override {
 		service->responders.insert(typeid(url_to_analyze_request).name(), 
 								   &pi_page_analyzer_service::url_to_analyze_request_responder);
+		service->responders.insert(typeid(page_info_request).name(),
+								   &pi_page_analyzer_service::page_info_request_responder);
 	}
 
 	void add_unused_response_type_names(const service_ptr& service) const override {
-
+		return;
 	}
 };

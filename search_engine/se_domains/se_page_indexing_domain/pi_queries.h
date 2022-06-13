@@ -12,6 +12,7 @@ protected:
 			{typeid(is_unique_page_url_request).name(),   &pi_queries::is_unique_page_url  },
 			{typeid(record_page_info_request).name(),     &pi_queries::record_page_info    },
 			{typeid(site_recording_request).name(),       &pi_queries::site_recording      },
+			{typeid(page_and_site_id_request).name(),     &pi_queries::page_and_site_id    },
 		};
 	}
 
@@ -22,19 +23,21 @@ private:
 
 		auto req = *static_cast<init_database_request*>(args.get());
 
-		ostr << "create database "
-			<< "if not exists " << req.database_name << ";";
+		ostr << "drop database if exists " << req.database_name << ";";
+		reset(ostr, res);
+
+		ostr << "create database " << req.database_name << ";";
 		reset(ostr, res);
 
 		ostr << "use " << req.database_name << ";";
 		reset(ostr, res);
 
 		ostr << "create table "
-			<< "if not exists " << pages_info_tb_name << " ("
-			<< "id int primary key auto_increment,"
-			<< "path mediumtext not null,"
-			<< "code int not null,"
-			<< "content mediumtext not null);";
+			 << "if not exists " << pages_info_tb_name << " ("
+			 << "id int primary key auto_increment,"
+			 << "path mediumtext not null,"
+			 << "code int not null,"
+			 << "content mediumtext not null);";
 		reset(ostr, res);
 
 		ostr << "truncate table " << pages_info_tb_name << ";";
@@ -47,6 +50,32 @@ private:
 		reset(ostr, res);
 
 		ostr << "truncate table " << sites_list_tb_name << ";";
+		reset(ostr, res);
+
+		ostr << "create table "
+			 << "if not exists " << words_info_tb_name << " ("
+			 << "id int primary key auto_increment,"
+			 << "site_id int not null,"
+			 << "value text not null,"
+			 << "lang int not null,"
+			 << "frequency int not null,"
+			 << "foreign key(site_id) references " << sites_list_tb_name << "(id) on delete cascade);";
+		reset(ostr, res);
+
+		ostr << "truncate table " << words_info_tb_name << ";";
+		reset(ostr, res);
+
+		ostr << "create table "
+			 << "if not exists " << search_index_tb_name << " ("
+			 << "id int primary key auto_increment,"
+			 << "page_id int not null,"
+			 << "word_id int not null,"
+			 << "ranking float not null,"
+			 << "foreign key(page_id) references " << pages_info_tb_name << "(id) on delete cascade,"
+			 << "foreign key(word_id) references " << words_info_tb_name << "(id) on delete cascade);";
+		reset(ostr, res);
+
+		ostr << "truncate table " << search_index_tb_name << ";";
 		reset(ostr, res);
 
 		return res;
@@ -93,6 +122,24 @@ private:
 
 		return res;
 	}
+
+	static std::vector<std::string> page_and_site_id(const std::shared_ptr<context>& args) {
+		std::vector<std::string> res;
+		std::ostringstream ostr;
+
+		auto req = *static_cast<page_and_site_id_request*>(args.get());
+
+		ostr << "select id from " << pages_info_tb_name
+			<< "where path = " << "\"" << req.page_url << "\"";
+		reset(ostr, res);
+
+		ostr << "select id from " << sites_list_tb_name
+			<< "where url = " << "\"" << req.site_url << "\"";
+		reset(ostr, res);
+
+		return res;
+	}
+
 public:
 	pi_queries() : se_db_queries(get_message_name_query_interpreter())
 	{ }

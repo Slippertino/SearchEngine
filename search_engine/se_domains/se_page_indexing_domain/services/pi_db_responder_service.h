@@ -117,6 +117,38 @@ private:
 		connections.add(comps.connection);
 	}
 
+	void page_and_site_id_request_responder(msg_request msg) {
+		responder_components comps;
+		get_components(msg, typeid(page_and_site_id_request).name(), comps);
+
+		page_and_site_id_response resp;
+
+		try {
+			auto page_query(comps.statement->executeQuery(comps.queries[0]));
+			auto site_query(comps.statement->executeQuery(comps.queries[1]));
+
+			if (!page_query->rowsCount() || !site_query->rowsCount())
+				throw std::exception("Unexisted url!\n");
+
+			resp.page_id = page_query->getUInt64("id");
+			resp.site_id = site_query->getUInt64("id");
+
+			resp.status.status = runtime_status::SUCCESS;
+			resp.status.message = "Successful query!\n";
+		}
+		catch (const std::exception& ex) {
+			resp.status.status = runtime_status::FAIL;
+			resp.status.message = "Fail query!\n" + std::string(ex.what());
+		}
+
+		MAKE_RESPONSE(page_and_site_id, (
+			msg.id,
+			resp
+		))
+
+		connections.add(comps.connection);
+	}
+
 	void initialize(const configuration& config) {
 		std::thread init_thread(&pi_db_responder_service::requests_handler, this);
 		init_thread.detach();
@@ -135,7 +167,12 @@ private:
 			}
 		}
 
-		MAKE_REQUEST(init_database, (db_name))
+		MAKE_REQUEST_WITH_RESPONSE(resp, init_database, (
+			resp,
+			db_name
+		))
+
+		SE_LOG("Init setup: " << resp.to_string() << "\n");
 	}
 
 protected:
@@ -178,11 +215,11 @@ protected:
 		service->router->subscribe<record_page_info_request>(service);
 		service->router->subscribe<is_unique_page_url_request>(service);
 		service->router->subscribe<site_recording_request>(service);
+		service->router->subscribe<page_and_site_id_request>(service);
 	}
 
 	void add_power_distribution(const service_ptr& service) const override {
-		service->power_distribution.push_back({ &pi_db_responder_service::requests_handler, 10 });
-		service->power_distribution.push_back({ &pi_db_responder_service::responses_handler, 1 });
+		service->power_distribution.push_back({ &pi_db_responder_service::requests_handler, 1 });
 	}
 
 	void add_request_responders(const service_ptr& service) const override {
@@ -194,9 +231,11 @@ protected:
 								   &pi_db_responder_service::record_page_info_request_responder);
 		service->responders.insert(typeid(site_recording_request).name(),
 								   &pi_db_responder_service::sites_list_recording_request_responder);
+		service->responders.insert(typeid(page_and_site_id_request).name(),
+								   &pi_db_responder_service::page_and_site_id_request_responder);
 	}
 
 	void add_unused_response_type_names(const service_ptr& service) const override {
-		service->unused_response_type_names.insert(typeid(init_database_response).name(), nullptr);
+		return;
 	}
 };

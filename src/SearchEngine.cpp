@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
 
     auto engine = builder<search_engine>().build();
     engine->setup(config);
-    engine->run(1000);
+    engine->run(2000);
 }
 
 /*

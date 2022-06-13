@@ -4,8 +4,9 @@
 #include "services/pi_page_dumper_service.h"
 #include "services/pi_page_analyzer_service.h"
 #include "services/pi_db_responder_service.h"
+#include "services/pi_page_indexing_service.h"
 
-class pi_domain : public se_domain<pi_domain, 3>
+class pi_domain : public se_domain<pi_domain, 4>
 { 
 	SE_DOMAIN(pi_domain) 
 
@@ -31,6 +32,7 @@ protected:
 			std::make_pair(builder<pi_page_analyzer_service>() .build(domain->id, domain->logger_path, domain->router),  2),
 			std::make_pair(builder<pi_db_responder_service>()  .build(domain->id, domain->logger_path, domain->router),  2),
 			std::make_pair(builder<pi_page_dumper_service>()   .build(domain->id, domain->logger_path, domain->router),  1),
+			std::make_pair(builder<pi_page_indexing_service>() .build(domain->id, domain->logger_path, domain->router),  1),
 		};
 	}
 };

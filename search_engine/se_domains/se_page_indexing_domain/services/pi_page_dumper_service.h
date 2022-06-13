@@ -130,6 +130,11 @@ private:
 			if (!page_info.is_valid)
 				continue;
 
+			MAKE_REQUEST(page_indexing, (
+				link_prefix.first,
+				link_prefix.second
+			))
+
 			semaphore.enter(2);
 			en_de_coder coder(page_info.page_encoding);
 			for (auto s : page_info.linked_urls) {
@@ -150,9 +155,12 @@ private:
 		semaphore.disconnect_thread();
 	}
 
-	void load_urls(const std::vector<std::string>& urls) {
-		for (auto& url : urls) 
+	void load_urls(std::vector<std::string>& urls) {
+		en_de_coder coder;
+		for (auto& url : urls) {
+			coder.encode(url);
 			add_to_buffer({ url, url });
+		}
 	}
 
 protected:
@@ -193,6 +201,7 @@ protected:
 		service->router->subscribe<record_page_info_response>(service);
 		service->router->subscribe<is_unique_page_url_response>(service);
 		service->router->subscribe<site_recording_response>(service);
+		service->router->subscribe<page_indexing_response>(service);
 	}
 
 	void add_power_distribution(const service_ptr& service) const override {
@@ -204,6 +213,6 @@ protected:
 	}
 
 	void add_unused_response_type_names(const service_ptr& service) const override {
-
+		service->unused_response_type_names.insert(typeid(page_indexing_response).name(), nullptr);
 	}
 };
