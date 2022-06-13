@@ -11,8 +11,21 @@ protected:
 	size_t id;
 	fs::path logger_path;
 
-protected:
-	std::string get_full_name(const std::string& name) const {
+public:
+	se_component() = delete;
+	se_component(size_t id, const fs::path& path) : id(id), 
+											        logger_path(path)
+	{ }
+
+	auto get_id() const {
+		return id;
+	}
+
+	auto get_path() const {
+		return logger_path;
+	}
+
+	auto get_full_name(const std::string& name) const {
 		std::ostringstream ostr;
 		auto time = std::time(nullptr);
 		ostr << name << "_" << std::put_time(std::localtime(&time), "%Y.%m.%d %H.%M.%S");
@@ -20,12 +33,6 @@ protected:
 	}
 
 	virtual std::string get_component_name() const = 0;
-
-public:
-	se_component() = delete;
-	se_component(size_t id, const fs::path& path) : id(id), 
-											        logger_path(path)
-	{ }
 
 	virtual void run(size_t threads_count) = 0;
 	virtual void stop() = 0;

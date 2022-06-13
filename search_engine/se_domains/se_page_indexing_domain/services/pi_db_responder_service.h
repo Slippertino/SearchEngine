@@ -135,19 +135,10 @@ private:
 			}
 		}
 
-		MAKE_REQUEST_WITH_RESPONSE(resp, init_database, (
-			resp,
-			db_name
-		))
-
-		SE_LOG("Init result : " << resp.to_string() << "\n");
+		MAKE_REQUEST(init_database, (db_name))
 	}
 
 protected:
-	std::string get_component_name() const override {
-		return std::string("db_responder_service");
-	}
-
 	void clear() override {
 		while (!connections.empty()) {
 			std::shared_ptr<sql::Connection> con;
@@ -161,6 +152,10 @@ public:
 	pi_db_responder_service(size_t id, const fs::path& root, const std::shared_ptr<se_router>& in_router) :
 		se_service(id, root / R"(services)" / get_full_name(get_component_name()), in_router)
 	{ }
+
+	std::string get_component_name() const override {
+		return std::string("db_responder_service");
+	}
 
 	void setup(const configuration& config) override {
 		try {
@@ -186,7 +181,8 @@ protected:
 	}
 
 	void add_power_distribution(const service_ptr& service) const override {
-		service->power_distribution.push_back({ &pi_db_responder_service::requests_handler, 1 });
+		service->power_distribution.push_back({ &pi_db_responder_service::requests_handler, 10 });
+		service->power_distribution.push_back({ &pi_db_responder_service::responses_handler, 1 });
 	}
 
 	void add_request_responders(const service_ptr& service) const override {
@@ -200,26 +196,7 @@ protected:
 								   &pi_db_responder_service::sites_list_recording_request_responder);
 	}
 
-	void configure_logger(const service_ptr& service) const override {
-		auto logger = se_loggers_storage::get_instance()->get_logger(service->id);
-		auto name   = service->get_component_name();
-
-		logger->add_file(
-			se_logger::get_code(name),
-			name + std::string("_process"),
-			service->logger_path
-		);
-
-		logger->add_file(
-			se_logger::get_code(name, std::to_string(static_cast<size_t>(message_type::REQUEST))),
-			name + std::string("_requests"),
-			service->logger_path
-		);
-
-		logger->add_file(
-			se_logger::get_code(name, std::to_string(static_cast<size_t>(message_type::RESPONSE))),
-			name + std::string("_responses"),
-			service->logger_path
-		);
+	void add_unused_response_type_names(const service_ptr& service) const override {
+		service->unused_response_type_names.insert(typeid(init_database_response).name(), nullptr);
 	}
 };

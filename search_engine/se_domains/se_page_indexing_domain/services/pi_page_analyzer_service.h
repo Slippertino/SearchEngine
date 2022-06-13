@@ -120,10 +120,6 @@ private:
 	}
 
 protected:
-	std::string get_component_name() const override {
-		return std::string("page_analyzer_service");
-	}
-
 	void clear() override {
 		info_storage.clear();
 		source      .clear();
@@ -133,6 +129,10 @@ public:
 	pi_page_analyzer_service(size_t id, const fs::path& root, const std::shared_ptr<se_router>& in_router) : 
 		se_service(id, root / R"(services)" / get_full_name(get_component_name()), in_router)
 	{ }
+
+	std::string get_component_name() const override {
+		return std::string("page_analyzer_service");
+	}
 
 	void setup(const configuration& config) override {
 		SE_LOG("Successful setup!\n");
@@ -159,26 +159,7 @@ protected:
 								   &pi_page_analyzer_service::url_to_analyze_request_responder);
 	}
 
-	void configure_logger(const service_ptr& service) const override {
-		auto logger = se_loggers_storage::get_instance()->get_logger(service->id);
-		auto name   = service->get_component_name();
+	void add_unused_response_type_names(const service_ptr& service) const override {
 
-		logger->add_file(
-			se_logger::get_code(name),
-			name + std::string("_process"),
-			service->logger_path
-		);
-
-		logger->add_file(
-			se_logger::get_code(name, std::to_string(static_cast<size_t>(message_type::REQUEST))),
-			name + std::string("_requests"),
-			service->logger_path
-		);
-
-		logger->add_file(
-			se_logger::get_code(name, std::to_string(static_cast<size_t>(message_type::RESPONSE))),
-			name + std::string("_responses"),
-			service->logger_path
-		);
 	}
 };

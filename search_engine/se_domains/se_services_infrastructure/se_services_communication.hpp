@@ -24,20 +24,19 @@ protected:
 	{ }
 
 	bool try_get_request(std::pair<std::string, msg_request>& msg_data) {
-		auto res = requests.try_erase(msg_data);
-		return res;
+		return requests.try_get(msg_data);
 	}
 
-	template<typename context_t>
-	bool try_get_response(const std::string& msg_id, context_t& body) {
-		msg_response msg;
-		auto res = responses.try_erase(msg_id, msg);
+	bool try_erase_request(std::pair<std::string, msg_request>& msg_data) {
+		return requests.try_erase(msg_data);
+	}
 
-		if (res) {
-			body = *static_cast<context_t*>(msg.body.get());
-		}
+	bool try_get_response(std::pair<std::string, msg_response>& msg_data) {
+		return responses.try_get(msg_data.first, msg_data.second);
+	}
 
-		return res;
+	bool try_erase_response(std::pair<std::string, msg_response>& msg_data) {
+		return responses.try_erase(msg_data.first, msg_data.second);
 	}
 
 	template<typename context_t, typename... Args>

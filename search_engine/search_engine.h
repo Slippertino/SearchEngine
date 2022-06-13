@@ -18,10 +18,6 @@ private:
 	std::shared_ptr<se_component> page_indexing_domain;
 
 protected:
-	std::string get_component_name() const override {
-		return std::string("search_engine");
-	}
-
 	void wait_for_stop() const {
 		do {
 			std::this_thread::sleep_for(10s);
@@ -32,6 +28,10 @@ public:
 	search_engine() : se_component(++id_automaton,
 								   logs_root / fs::path(get_full_name(get_component_name() + std::to_string(rand() % 10000) + "_")))
 	{ }
+
+	std::string get_component_name() const override {
+		return std::string("search_engine");
+	}
 
 	void run(size_t threads_count) override {
 		try {
@@ -99,17 +99,5 @@ class builder<search_engine> : public abstract_engine_builder<search_engine>
 protected:
 	void add_domains(const engine_ptr& engine) const override {
 		engine->page_indexing_domain = builder<pi_domain>().build(engine->id, engine->logger_path);
-	}
-
-	void configure_logger(const engine_ptr& engine) const override {
-		auto logger = std::make_shared<se_logger>(engine->logger_path, ".txt");
-		auto name  = engine->get_component_name();
-
-		logger->add_file(
-			se_logger::get_code(name),
-			name + std::string("_process"),
-			engine->logger_path
-		);
-		se_loggers_storage::get_instance()->set_logger(engine->id, logger);
 	}
 };

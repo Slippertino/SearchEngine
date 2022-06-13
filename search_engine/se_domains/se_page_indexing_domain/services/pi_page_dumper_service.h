@@ -25,26 +25,22 @@ private:
 
 	semaphore semaphore;
 
+	std::mutex record_locker;
 	std::mutex mutex;
 
 private:
 	void add_to_buffer(const std::pair<std::string, std::string>& link_prefix) {
-		static std::mutex record_locker;
-		std::pair<std::string, std::string> l_p;
+		if (link_prefix.first.empty() ||
+			link_prefix.second.empty()) {
+			return;
+		}
 
-		while (!source.try_get(link_prefix.first, l_p)){
-			if (record_locker.try_lock()) {
-				if (!link_prefix.first.empty() &&
-					!link_prefix.second.empty() &&
-					source.find(link_prefix.first) == source.cend()) {
-					keys.add(link_prefix.first);
-					source.insert(link_prefix.first, link_prefix);
+		std::lock_guard<std::mutex> locker(record_locker);
+		if (source.find(link_prefix.first) == source.end()) {
+			keys.add(link_prefix.first);
+			source.insert(link_prefix.first, link_prefix);
 
-					SE_LOG("Added to buffer: " << link_prefix.first << "\n");
-					record_locker.unlock();
-					break;
-				}
-			}
+			SE_LOG("Added to buffer: " << link_prefix.first << "\n");
 		}
 	}
 
@@ -95,6 +91,8 @@ private:
 
 			semaphore.enter(1);
 			extract_from_buffer(link_prefix);
+			en_de_coder().encode(link_prefix.first);
+
 			MAKE_REQUEST_WITH_RESPONSE(result, is_unique_page_url, 
 				(result, link_prefix.first)) 
 			CHECK_FOR_STOP(link_prefix)
@@ -115,9 +113,6 @@ private:
 				(page_info, link_prefix.second, link_prefix.first))
 			CHECK_FOR_STOP(link_prefix)
 
-			en_de_coder coder;
-			coder.encode(link_prefix.first);
-
 			MAKE_REQUEST_WITH_RESPONSE(record_answer, record_page_info, 
 				(record_answer, link_prefix.first, page_info.content, page_info.status_code))
 			CHECK_FOR_STOP(link_prefix)
@@ -125,9 +120,7 @@ private:
 			semaphore.exit();
 
 			mutex.lock();
-			std::cout << link_prefix.first << " | " << "Size: " << source.size() << " | "
-				<< "Concurrency: " << pool.get_active_processes_count() << " | "
-				<< "Thread: " << std::this_thread::get_id() << "\n";
+			std::cout << link_prefix.first << "\n";
 			mutex.unlock();
 
 			SE_LOG(link_prefix.first << " | " << "Size: " << source.size() << " | "
@@ -138,6 +131,7 @@ private:
 				continue;
 
 			semaphore.enter(2);
+			en_de_coder coder(page_info.page_encoding);
 			for (auto s : page_info.linked_urls) {
 				coder.decode(s);
 				auto url = url_analyzer(s, link_prefix.second).convert_to_url();
@@ -162,10 +156,6 @@ private:
 	}
 
 protected:
-	std::string get_component_name() const override {
-		return std::string("page_dumper_service");
-	}
-
 	void clear() override {
 		keys     .clear();
 		source   .clear();
@@ -178,6 +168,10 @@ public:
 		se_service(id, root / R"(services)" / get_full_name(get_component_name()), in_router),
 		semaphore(2)
 	{ }
+
+	std::string get_component_name() const override {
+		return std::string("page_dumper_service");
+	}
 
 	void setup(const configuration& config) override {
 		try {
@@ -209,26 +203,7 @@ protected:
 		return;
 	}
 
-	void configure_logger(const service_ptr& service) const override {
-		auto logger = se_loggers_storage::get_instance()->get_logger(service->id);
-		auto name   = service->get_component_name();
+	void add_unused_response_type_names(const service_ptr& service) const override {
 
-		logger->add_file(
-			se_logger::get_code(name),
-			name + std::string("_process"),
-			service->logger_path
-		);
-
-		logger->add_file(
-			se_logger::get_code(name, std::to_string(static_cast<size_t>(message_type::REQUEST))),
-			name + std::string("_requests"),
-			service->logger_path
-		);
-
-		logger->add_file(
-			se_logger::get_code(name, std::to_string(static_cast<size_t>(message_type::RESPONSE))),
-			name + std::string("_responses"),
-			service->logger_path
-		);
 	}
 };

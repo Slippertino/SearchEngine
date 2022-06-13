@@ -36,17 +36,6 @@ public: \
 			SE_LOG("Service was successfully run with " << threads_count << " flows!\n"); \
 		} catch (const std::exception& ex) { \
 			SE_LOG("Error while trying to run service with " << threads_count << " flows! Message : " << ex.what() << "\n"); \
-			throw ex; \
-		} \
-	} \
-	void reset() override { \
-		try { \
-			se_services_communication::clear(); \
-			service_name::clear(); \
-			SE_LOG("Service was successfully reset!\n"); \
-		} catch (const std::exception& ex) { \
-			SE_LOG("Error while trying to reset! " << "Message : " << ex.what() << "\n"); \
-			throw ex; \
 		} \
 	} \
 
@@ -79,6 +68,9 @@ protected:
 	responders_container responders;
 	power_distribution_container power_distribution;
 
+	thread_safe_queue<std::pair<std::string, std::string>> responses_id;
+	thread_safe_unordered_map<std::string, nullptr_t> unused_response_type_names;
+
 protected:
 	template<typename T>
 	void execute_controlled_waiting(const std::function<bool(T&)>& func, T& value) {
@@ -89,9 +81,27 @@ protected:
 		} while (!res && !stop_flag);
 	}
 
+	void responses_handler() {
+		while (!stop_flag) {
+			std::pair<std::string, std::string> resp_info;
+			extract_from_ts_queue(responses_id, resp_info);
+
+			if (unused_response_type_names.find(resp_info.second) != unused_response_type_names.end()) {
+				try {
+					std::pair<std::string, msg_response> msg_info{ resp_info.first, {} };
+					EXECUTE_CONTROLLED_WAITING(msg_info, msg_info, try_erase_response(msg_info))
+					SE_LOG(message_type::RESPONSE, "Received response : " << msg_info.second.body->to_string() << "\n");
+				} catch (const std::exception& ex) {
+					SE_LOG(message_type::RESPONSE, "Error while trying to get response with following body type: " << resp_info.second
+												<< "! Message : " << ex.what() << "\n");
+				}
+			}
+		}
+	}
+
 	void get_request(std::pair<std::string, msg_request>& msg_info) {
 		try {
-			EXECUTE_CONTROLLED_WAITING(msg_info, msg_info, try_get_request(msg_info))
+			EXECUTE_CONTROLLED_WAITING(msg_info, msg_info, try_erase_request(msg_info))
 			SE_LOG(message_type::REQUEST, "Received request : " << msg_info.second.body->to_string() << "\n");
 		} catch (const std::exception& ex) {
 			std::cout << "Error while trying to get request! Message : " << ex.what() << "\n";
@@ -102,7 +112,9 @@ protected:
 	template<typename context_t>
 	void get_response(const std::string& msg_id, context_t& body) {
 		try {
-			EXECUTE_CONTROLLED_WAITING(body, body, try_get_response(msg_id, body))
+			std::pair<std::string, msg_response> msg_info{ msg_id, {} };
+			EXECUTE_CONTROLLED_WAITING(msg_info, msg_info, try_erase_response(msg_info))
+			body = *static_cast<context_t*>(msg_info.second.body.get());
 			SE_LOG(message_type::RESPONSE, "Received response : " << body.to_string() << "\n");
 		} catch (const std::exception& ex) {
 			std::cout << "Error while trying to get response with following body type: " << typeid(context_t).name()
@@ -117,11 +129,13 @@ protected:
 		try {
 			auto body = std::make_shared<context_t>(std::forward<Args>(args)...);
 			auto msg_id = send_request<context_t>(std::ref(*body));
+			responses_id.add({ msg_id, std::string(typeid(context_t).name()) });
 			SE_LOG(message_type::REQUEST, "Sent request : " << body->to_string() << "\n");
 			return msg_id;
 		} catch (const std::exception& ex) {
 			std::cout << "Error while trying to make request with following body type: " << typeid(context_t).name()
 					  << "! Message : " << ex.what() << "\n";
+			(std::cout << ... << args) << "\n";
 			SE_LOG(message_type::REQUEST, "Error while trying to make request with following body type: " << typeid(context_t).name()
 									   << "! Message : " << ex.what() << "\n");
 		}
@@ -217,13 +231,21 @@ public:
 			SE_LOG("Service was successfully stopped!\n");
 		} catch (const std::exception& ex) {
 			SE_LOG("Error while trying to stop! " << "Message : " << ex.what() << "\n");
-			throw ex;
 		}
 	}
 
+	void reset() override {
+		try {
+			se_services_communication::clear(); 
+			this->clear(); 
+			SE_LOG("Service was successfully reset!\n"); 
+		} catch (const std::exception& ex) {
+			SE_LOG("Error while trying to reset! " << "Message : " << ex.what() << "\n"); 
+		} 
+	} 
+
 	virtual void run(size_t threads_count) override = 0;
 	virtual void setup(const configuration& config) override = 0;
-	virtual void reset() override = 0;
 
 	virtual ~se_service() = default;
 };
