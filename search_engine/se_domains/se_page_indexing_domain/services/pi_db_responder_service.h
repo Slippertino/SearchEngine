@@ -30,7 +30,7 @@ private:
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n" + std::string(ex.what());
+			resp.status.message = "Fail query!\n INITIALIZATION : " + std::string(ex.what());
 		}
 
 		MAKE_RESPONSE(init_database, (
@@ -50,12 +50,17 @@ private:
 
 		try {
 			auto count = comps.statement->executeUpdate(comps.queries[0]);
+
+			if (!count) {
+				throw std::exception("Table of sites has not been successfully updated!\n");
+			}
+
 			resp.status.status = runtime_status::SUCCESS;
 			resp.status.message = "Successful query!\n";
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n" + std::string(ex.what());
+			resp.status.message = "Fail query!\n SITES_LIST_RECORDING : " + std::string(ex.what());
 		}
 
 		MAKE_RESPONSE(site_recording, (
@@ -75,12 +80,17 @@ private:
 
 		try {
 			auto count = comps.statement->executeUpdate(comps.queries[0]);
+
+			if (!count) {
+				throw std::exception("Table of pages has not been successfully updated!\n");
+			}
+
 			resp.status.status = runtime_status::SUCCESS;
 			resp.status.message = "Successful query!\n";
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n RECORD_PAGE_INFO" + std::string(ex.what());
+			resp.status.message = "Fail query!\n RECORD_PAGE_INFO : " + std::string(ex.what());
 		}
 
 		MAKE_RESPONSE(record_page_info, (
@@ -106,7 +116,7 @@ private:
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n" + std::string(ex.what());
+			resp.status.message = "Fail query!\n IS_UNIQUE_PAGE_URL : " + std::string(ex.what());
 		}
 
 		MAKE_RESPONSE(is_unique_page_url, (
@@ -138,10 +148,75 @@ private:
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n" + std::string(ex.what());
+			resp.status.message = "Fail query!\n PAGE_AND_SITE_ID : " + std::string(ex.what());
 		}
 
 		MAKE_RESPONSE(page_and_site_id, (
+			msg.id,
+			resp
+		))
+
+		connections.add(comps.connection);
+	}
+
+	void record_word_info_request_responder(msg_request msg) {
+		responder_components comps;
+		get_components(msg, typeid(record_word_info_request).name(), comps);
+
+		record_word_info_response resp;
+
+		try {
+			auto count = comps.statement->executeUpdate(comps.queries[0]);
+
+			if (!count) {
+				count = comps.statement->executeUpdate(comps.queries[1]);
+			}
+
+			if (!count) {
+				throw std::exception("Table of words has not been successfully updated!\n");
+			}
+
+			resp.word_id = comps.statement->executeQuery(comps.queries[2])
+										  ->getUInt64("id");
+
+			resp.status.status = runtime_status::SUCCESS;
+			resp.status.message = "Successful query!\n";
+		}
+		catch (const std::exception& ex) {
+			resp.status.status = runtime_status::FAIL;
+			resp.status.message = "Fail query!\n RECORD_WORD_INFO : " + std::string(ex.what());
+		}
+
+		MAKE_RESPONSE(record_word_info, (
+			msg.id,
+			resp
+		))
+
+		connections.add(comps.connection);
+	}
+
+	void record_word_to_index_request_responder(msg_request msg) {
+		responder_components comps;
+		get_components(msg, typeid(record_word_to_index_request).name(), comps);
+
+		record_word_to_index_response resp;
+
+		try {
+			auto count = comps.statement->executeUpdate(comps.queries[0]);
+
+			if (!count) {
+				throw std::exception("Table of indexes has not been successfully updated!\n");
+			}
+
+			resp.status.status = runtime_status::SUCCESS;
+			resp.status.message = "Successful query!\n";
+		}
+		catch (const std::exception& ex) {
+			resp.status.status = runtime_status::FAIL;
+			resp.status.message = "Fail query!\n RECORD_WORD_TO_INDEX : " + std::string(ex.what());
+		}
+
+		MAKE_RESPONSE(record_word_to_index, (
 			msg.id,
 			resp
 		))
@@ -216,6 +291,8 @@ protected:
 		service->router->subscribe<is_unique_page_url_request>(service);
 		service->router->subscribe<site_recording_request>(service);
 		service->router->subscribe<page_and_site_id_request>(service);
+		service->router->subscribe<record_word_info_request>(service);
+		service->router->subscribe<record_word_to_index_request>(service);
 	}
 
 	void add_power_distribution(const service_ptr& service) const override {
@@ -233,6 +310,10 @@ protected:
 								   &pi_db_responder_service::sites_list_recording_request_responder);
 		service->responders.insert(typeid(page_and_site_id_request).name(),
 								   &pi_db_responder_service::page_and_site_id_request_responder);
+		service->responders.insert(typeid(record_word_info_request).name(),
+								   &pi_db_responder_service::record_word_info_request_responder);
+		service->responders.insert(typeid(record_word_to_index_request).name(),
+								   &pi_db_responder_service::record_word_to_index_request_responder);
 	}
 
 	void add_unused_response_type_names(const service_ptr& service) const override {

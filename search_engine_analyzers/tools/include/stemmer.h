@@ -15,7 +15,8 @@ private:
 
 private:
 	sb_stemmer* stem_obj;
-	en_de_coder coder;
+	en_de_coder external_coder;
+	en_de_coder internal_coder;
 
 private:
 	const char* def_language_name(language_t) const;

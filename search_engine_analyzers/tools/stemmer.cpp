@@ -13,7 +13,7 @@ const std::map<language_t, const char*> stemmer::language_t_to_name_interpreter 
 
 stemmer::stemmer(language_t lang, encoding_t enc) : stem_obj(sb_stemmer_new(def_language_name(lang),
 																			def_encoding_name(enc))),
-													coder(enc)
+													external_coder(enc)
 { }
 
 const char* stemmer::def_language_name(language_t lang) const {
@@ -37,19 +37,23 @@ void stemmer::to_lower(std::string& text) const {
 std::string stemmer::get_stem(std::string word) const {
 	to_lower(word);
 
-	coder.encode(word);
+	external_coder.decode(word);
+	internal_coder.encode(word);
 
-	auto stemmed = sb_stemmer_stem(stem_obj,
+	auto stemmed = sb_stemmer_stem(
+		stem_obj,
 		reinterpret_cast<const sb_symbol*>(word.c_str()),
-		word.size());
+		word.size()
+	);
 
 	std::string res = std::string(reinterpret_cast<const char*>(
 		sb_stemmer_stem(stem_obj,
-			reinterpret_cast<const sb_symbol*>(word.c_str()),
-			word.size()))
+						reinterpret_cast<const sb_symbol*>(word.c_str()),
+						word.size()))
 	);
 
-	coder.decode(res);
+	internal_coder.decode(word);
+	external_coder.encode(word);
 
 	return res;
 }

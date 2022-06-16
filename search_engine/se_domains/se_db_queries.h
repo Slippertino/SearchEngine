@@ -7,7 +7,7 @@
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "se_services_infrastructure/message_core.h"
 
-class se_db_queries
+class se_db_queries 
 {
 protected:
 	using query_generator = std::function<std::vector<std::string>(const std::shared_ptr<context>& args)>;
@@ -28,8 +28,7 @@ protected:
 				str.insert(i++, "\\");
 	}
 
-	static void reset(std::ostringstream& ostr, std::vector<std::string>& buff)
-	{
+	static void reset(std::ostringstream& ostr, std::vector<std::string>& buff) {
 		buff.push_back(ostr.str());
 		ostr.str("");
 	}
@@ -43,8 +42,7 @@ public:
 	{ }
 
 	std::vector<std::string> get_query_text(std::string name,
-											const std::shared_ptr<context>& args)
-	{
+											const std::shared_ptr<context>& args) {
 		query_generator gen;
 		if (message_name_query_interpreter.try_get(name, gen))
 			return gen(args);

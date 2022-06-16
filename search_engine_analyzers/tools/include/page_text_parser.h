@@ -20,14 +20,14 @@ private:
 	std::pair<char, char> alf_range;
 
 private:
-	bool is_valid_word(const std::string&);
-	void skip_whitespaces(std::string&);
-	std::string get_word(std::string&);
+	bool is_valid_word(const std::string&) const;
+	void skip_whitespaces(std::string&) const;
+	std::string get_word(std::string&) const;
 
 public:
 	page_text_parser() = delete;
 	page_text_parser(language_t, encoding_t);
 
-	void parse(std::string&,
-			   std::vector<std::string>&);
+	void parse(std::string,
+			   std::vector<std::string>&) const;
 };

@@ -13,8 +13,10 @@ private:
 
 public:
 	thread_safe_unordered_map() = default;
-	thread_safe_unordered_map(const thread_safe_unordered_map& map) : data_source(map.data_source)
+	thread_safe_unordered_map(const thread_safe_unordered_map& map) 
+								  : thread_safe_container<std::unordered_map, TKey, TValue>(map)
 	{ }
+
 	thread_safe_unordered_map(thread_safe_unordered_map&& map) {
 		data_source = std::move(map.data_source);
 	}
@@ -73,6 +75,13 @@ public:
 	void set(const TKey& key, const TValue& value) {
 		std::lock_guard<std::mutex> locker(mut);
 		data_source[key] = value;
+	}
+
+	void update(const TKey& key,
+				const TValue& value, 
+				const std::function<TValue(const TValue&, const TValue&)> op) {
+		std::lock_guard<std::mutex> locker(mut);
+		data_source[key] = op(data_source[key], value);
 	}
 
 	void wait_and_erase(const TKey& key, TValue& value) {

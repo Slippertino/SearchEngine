@@ -13,7 +13,7 @@ page_text_parser::page_text_parser(language_t lang, encoding_t enc) : coder(enc)
 																	  alf_range(language_t_alf_range_interpreter.at(lang))
 { }
 
-bool page_text_parser::is_valid_word(const std::string& text) {
+bool page_text_parser::is_valid_word(const std::string& text) const {
 
 	for (auto& ch : text)
 		if (ch < alf_range.first || ch > alf_range.second)
@@ -22,7 +22,7 @@ bool page_text_parser::is_valid_word(const std::string& text) {
 	return true;
 }
 
-void page_text_parser::skip_whitespaces(std::string& text) {
+void page_text_parser::skip_whitespaces(std::string& text) const {
 	for (auto i = 0; i < text.size(); ++i)
 		if (whitespaces.find(text[i]) == std::string::npos) {
 			text = text.substr(i);
@@ -30,7 +30,7 @@ void page_text_parser::skip_whitespaces(std::string& text) {
 		}
 }
 
-std::string page_text_parser::get_word(std::string& text) {
+std::string page_text_parser::get_word(std::string& text) const {
 	std::string res;
 
 	for (auto i = 0; i < text.size(); ++i)
@@ -43,8 +43,8 @@ std::string page_text_parser::get_word(std::string& text) {
 	return res;
 }
 
-void page_text_parser::parse(std::string& text,
-							 std::vector<std::string>& stemmed_words) {
+void page_text_parser::parse(std::string text,
+							 std::vector<std::string>& stemmed_words) const {
 	coder.decode(text);
 
 	while (!text.empty()) {
@@ -52,8 +52,12 @@ void page_text_parser::parse(std::string& text,
 
 		if (!text.empty()) {
 			auto word = get_word(text);
-			if (is_valid_word(word))
-				stemmed_words.push_back(stem_obj.get_stem(word));
+			if (is_valid_word(word)) {
+				coder.encode(word);
+				word = stem_obj.get_stem(word);
+				coder.decode(word);
+				stemmed_words.push_back(word);
+			}
 		}
 	}
 }

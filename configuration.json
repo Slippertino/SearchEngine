@@ -8,7 +8,6 @@
 
 	"sources": [
 		"https://www.cplusplus.com",
-		"https://en.cppreference.com",
-		"https://www.woman.ru"
+		"https://en.cppreference.com"
 	]
 }

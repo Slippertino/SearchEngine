@@ -130,7 +130,7 @@ private:
 			if (!page_info.is_valid)
 				continue;
 
-			MAKE_REQUEST(page_indexing, (
+			MAKE_REQUEST(page_indexing_id_resp, page_indexing, (
 				link_prefix.first,
 				link_prefix.second
 			))

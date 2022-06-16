@@ -45,10 +45,10 @@ public: \
 	}, var_name); \
 
 #define GET_REQUEST(msg_info) get_request(msg_info); 
-#define GET_RESPONSE(msg_id, body) get_response(msg_id, body);
+#define GET_RESPONSE(msg_id, var_name, type_name) type_name var_name; get_response(msg_id, var_name);
 
-#define MAKE_REQUEST(msg_name, params) \
-	make_request<msg_name##_request> params; 
+#define MAKE_REQUEST(id_name, msg_name, params) \
+	std::string id_name = make_request<msg_name##_request> params; 
 #define MAKE_REQUEST_WITH_RESPONSE(name, msg_name, params) \
 	msg_name##_response name; make_request_with_response<msg_name##_request, msg_name##_response> params; 
 #define MAKE_RESPONSE(msg_name, params) \

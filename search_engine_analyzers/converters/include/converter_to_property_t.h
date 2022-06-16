@@ -10,6 +10,7 @@ class converter_to_property_t
 {
 protected:
 	static const std::map<std::string, TTextProperty> pattern_to_value_interpreter;
+	static const std::map<TTextProperty, std::string> value_to_name_interpreter;
 	static const TTextProperty default_value;
 
 protected:
@@ -30,6 +31,10 @@ public:
 		}
 
 		return default_value;
+	}
+
+	std::string to_string(TTextProperty prop) const {
+		return value_to_name_interpreter.at(prop);
 	}
 
 	virtual ~converter_to_property_t() = default;

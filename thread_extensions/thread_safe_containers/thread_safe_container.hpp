@@ -13,6 +13,10 @@ protected:
 	cont<types...> data_source;
 
 public:
+	thread_safe_container() = default;
+	thread_safe_container(const thread_safe_container& cont) : data_source(cont.data_source)
+	{ }
+
 	virtual bool empty() const {
 		std::lock_guard<std::mutex> locker(mut);
 		return data_source.empty();

@@ -1,0 +1,5 @@
+1) Отрефакторить se_analyzers/converters. Вместо converter'ов определить абрстрактный тип property и его потомков: encoding и language.
+Интерфейс:
+ - get_type()
+ - to_string()
+ - неявное преобразование между значением enum'а типа и объектом класса

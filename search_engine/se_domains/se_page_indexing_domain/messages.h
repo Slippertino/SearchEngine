@@ -251,13 +251,13 @@ struct page_and_site_id_request : context
 	std::string page_url;
 	std::string site_url;
 
-	SE_CONTEXT(
+	SE_CONTEXT (
 		page_and_site_id_request,
 		page_url,
 		site_url
 	)
 
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE (
 		page_and_site_id_request,
 		page_url,
 		site_url
@@ -270,17 +270,92 @@ struct page_and_site_id_response : context
 	size_t site_id;
 	response_status status;
 
-	SE_CONTEXT(
+	SE_CONTEXT (
 		page_and_site_id_response,
 		page_id,
 		site_id,
 		status
 	)
 
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE (
 		page_and_site_id_response,
 		page_id,
 		site_id,
+		status
+	)
+};
+
+struct record_word_info_request : context
+{
+	size_t site_id;
+	std::string lang;
+	std::string stemmed_word;
+
+	SE_CONTEXT(
+		record_word_info_request,
+		site_id,
+		lang,
+		stemmed_word
+	)
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+		record_word_info_request,
+		site_id,
+		lang,
+		stemmed_word
+	)
+};
+
+struct record_word_info_response : context
+{
+	size_t word_id;
+	response_status status;
+
+	SE_CONTEXT(
+		record_word_info_response,
+		word_id,
+		status
+	)
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+		record_word_info_response,
+		word_id,
+		status
+	)
+};
+
+struct record_word_to_index_request : context
+{
+	size_t page_id;
+	size_t word_id;
+	html_text_analyzer::ratio_type rank;
+
+	SE_CONTEXT(
+		record_word_to_index_request,
+		page_id,
+		word_id,
+		rank
+	)
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+		record_word_to_index_request,
+		page_id,
+		word_id,
+		rank
+	)
+};
+
+struct record_word_to_index_response : context
+{
+	response_status status;
+
+	SE_CONTEXT(
+		record_word_to_index_response,
+		status
+	)
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+		record_word_to_index_response,
 		status
 	)
 };
