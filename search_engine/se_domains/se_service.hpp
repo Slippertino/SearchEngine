@@ -135,6 +135,7 @@ protected:
 		} catch (const std::exception& ex) {
 			std::cout << "Error while trying to make request with following body type: " << typeid(context_t).name()
 					  << "! Message : " << ex.what() << "\n";
+
 			(std::cout << ... << args) << "\n";
 			SE_LOG(message_type::REQUEST, "Error while trying to make request with following body type: " << typeid(context_t).name()
 									   << "! Message : " << ex.what() << "\n");
@@ -156,8 +157,8 @@ protected:
 	}
 
 	template<typename request_t, typename response_t, typename... Args>
-	void make_request_with_response(response_t& body, Args... args) {
-		auto id = se_service<service_t>::make_request<request_t>(args...);
+	void make_request_with_response(response_t& body, Args&&... args) {
+		auto id = se_service<service_t>::make_request<request_t>(std::forward<Args>(args)...);
 		se_service<service_t>::get_response<response_t>(id, body);
 	}
 
@@ -216,6 +217,13 @@ public:
 		se_component(id, path), 
 		se_services_communication(in_router)
 	{ }
+
+	size_t get_power_value() const {
+		size_t res{ 0 };
+		for (auto& cur : power_distribution)
+			res += cur.second;
+		return res;
+	}
 
 	bool status() const override {
 		auto st = !pool.is_work_finished();

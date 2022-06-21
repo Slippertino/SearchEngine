@@ -1,6 +1,6 @@
 #pragma once
 
-#include <en_de_coder.h>
+#include <tools/en_de_coder.hpp>
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../../se_service.hpp"
@@ -26,11 +26,11 @@ private:
 			for (auto& cur : comps.queries)
 				auto count = comps.statement->executeUpdate(cur);
 			resp.status.status = runtime_status::SUCCESS;
-			resp.status.message = "Successful query!\n";
+			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n INITIALIZATION : " + std::string(ex.what());
+			resp.status.message = { "Fail query!\n INITIALIZATION : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
 		MAKE_RESPONSE(init_database, (
@@ -56,11 +56,11 @@ private:
 			}
 
 			resp.status.status = runtime_status::SUCCESS;
-			resp.status.message = "Successful query!\n";
+			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n SITES_LIST_RECORDING : " + std::string(ex.what());
+			resp.status.message = { "Fail query!\n SITES_LIST_RECORDING : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
 		MAKE_RESPONSE(site_recording, (
@@ -86,11 +86,11 @@ private:
 			}
 
 			resp.status.status = runtime_status::SUCCESS;
-			resp.status.message = "Successful query!\n";
+			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n RECORD_PAGE_INFO : " + std::string(ex.what());
+			resp.status.message = { "Fail query!\n RECORD_PAGE_INFO : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
 		MAKE_RESPONSE(record_page_info, (
@@ -112,11 +112,11 @@ private:
 			std::unique_ptr<sql::ResultSet> count(comps.statement->executeQuery(comps.queries[0]));
 			resp.answer = !count->rowsCount();
 			resp.status.status = runtime_status::SUCCESS;
-			resp.status.message = "Successful query!\n";
+			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n IS_UNIQUE_PAGE_URL : " + std::string(ex.what());
+			resp.status.message = { "Fail query!\n IS_UNIQUE_PAGE_URL : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
 		MAKE_RESPONSE(is_unique_page_url, (
@@ -140,15 +140,18 @@ private:
 			if (!page_query->rowsCount() || !site_query->rowsCount())
 				throw std::exception("Unexisted url!\n");
 
+			page_query->beforeFirst(); page_query->next();
+			site_query->beforeFirst(); site_query->next();
+
 			resp.page_id = page_query->getUInt64("id");
 			resp.site_id = site_query->getUInt64("id");
 
 			resp.status.status = runtime_status::SUCCESS;
-			resp.status.message = "Successful query!\n";
+			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n PAGE_AND_SITE_ID : " + std::string(ex.what());
+			resp.status.message = { "Fail query!\n PAGE_AND_SITE_ID : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
 		MAKE_RESPONSE(page_and_site_id, (
@@ -176,15 +179,16 @@ private:
 				throw std::exception("Table of words has not been successfully updated!\n");
 			}
 
-			resp.word_id = comps.statement->executeQuery(comps.queries[2])
-										  ->getUInt64("id");
+			auto res = comps.statement->executeQuery(comps.queries[2]);
+			res->beforeFirst(); res->next();
+			resp.word_id = res->getUInt64("id");
 
 			resp.status.status = runtime_status::SUCCESS;
-			resp.status.message = "Successful query!\n";
+			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n RECORD_WORD_INFO : " + std::string(ex.what());
+			resp.status.message = { "Fail query!\n RECORD_WORD_INFO : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
 		MAKE_RESPONSE(record_word_info, (
@@ -209,11 +213,11 @@ private:
 			}
 
 			resp.status.status = runtime_status::SUCCESS;
-			resp.status.message = "Successful query!\n";
+			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = "Fail query!\n RECORD_WORD_TO_INDEX : " + std::string(ex.what());
+			resp.status.message = { "Fail query!\n RECORD_WORD_TO_INDEX : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
 		MAKE_RESPONSE(record_word_to_index, (
@@ -244,7 +248,7 @@ private:
 
 		MAKE_REQUEST_WITH_RESPONSE(resp, init_database, (
 			resp,
-			db_name
+			string_enc{db_name, encoding_t::UTF_8}
 		))
 
 		SE_LOG("Init setup: " << resp.to_string() << "\n");

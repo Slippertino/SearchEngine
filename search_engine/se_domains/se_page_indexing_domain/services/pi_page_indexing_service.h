@@ -1,24 +1,27 @@
 #pragma once
 
+#include <tools/page_text_parser.hpp>
+#include <text_property_types/se_encoding.hpp>
+#include <text_property_types/se_language.hpp>
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../../se_service.hpp"
 #include "../messages.h"
-#include <page_text_parser.h>
 
 class pi_page_indexing_service : public se_service<pi_page_indexing_service>
 {
 	SE_SERVICE(pi_page_indexing_service)
 
 private:
-	using word_params = std::tuple<std::string, language_t, html_text_analyzer::ratio_type>;
-	using words_container = thread_safe_unordered_map<std::string, word_params>;
+	using word_params     = std::tuple<std::string, se_language, html_text_analyzer::ratio_type>;
+	using words_container = std::unordered_map<std::string, word_params>;
 
-	struct S  {
+	struct page_indexing_info
+	{
 		size_t page_id;
 		size_t site_id;
-		std::string stemmed_word;
-		std::string lang;
+		string_enc stemmed_word;
+		string_enc lang;
 		html_text_analyzer::ratio_type rank;
 
 		std::string to_string() const {
@@ -27,50 +30,42 @@ private:
 			return js.dump(); 
 		}
 
-		NLOHMANN_DEFINE_TYPE_INTRUSIVE(S, page_id, site_id, stemmed_word, lang,rank)
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+			page_indexing_info, 
+			page_id, 
+			site_id, 
+			stemmed_word, 
+			lang,
+			rank
+		)
 	};
 
+private:
+	thread_safe_queue<std::pair<std::string, std::string>> source_for_collect;
+	thread_safe_queue<page_indexing_info> source_for_record;
 
-	thread_safe_queue<std::pair<std::string, std::string>> source_for_analyze;
-	thread_safe_queue<S> source_for_record;
+	std::mutex mutex;
+	size_t counter = 0;
+	double average = 0;
 
 private:
 	void page_indexing_request_responder(msg_request msg) {
 		auto req = static_cast<page_indexing_request*>(msg.body.get());
-		source_for_analyze.add({req->url, req->prefix});
+		source_for_collect.add({req->url.str, req->prefix.str});
 
 		response_status resp_status;
 		resp_status.status  = runtime_status::SUCCESS;
-		resp_status.message = msg.body->to_string() + " was successfully added in a queue for indexing!\n";
+		resp_status.message = { msg.body->to_string() + " was successfully added in a queue for indexing!\n", encoding_t::ANSI };
 
 		MAKE_RESPONSE(page_indexing, (
 			msg.id,
 			resp_status
 		))
 	}
-	
-	void f(encoding_t encoding, 
-		   word_params& params,
-		   words_container& container) {
-		page_text_parser parser(std::get<1>(params), encoding);
 
-		std::vector<std::string> words;
-		parser.parse(std::get<0>(params), words);
-
-		for (auto& w : words) {
-			container.update(
-				w,
-				{ w, std::get<1>(params), std::get<2>(params) },
-				[](const auto& v1, const auto& v2) {
-					return word_params{ std::get<0>(v1), std::get<1>(v1), std::get<2>(v1) + std::get<2>(v2) };
-				}
-			);
-		}
-	}
-
-	void record_handler() {
+	void recording_info_handler() {
 		while (!stop_flag) {
-			S obj;
+			page_indexing_info obj;
 			pool.set_inactive(std::this_thread::get_id());
 			extract_from_ts_queue(source_for_record, obj);
 			SE_LOG("Extracted word params for record: " << obj.to_string() << "\n");
@@ -87,61 +82,80 @@ private:
 				obj.page_id,
 				record_word_resp.word_id,
 				obj.rank
-			))
+			))	
 		}
 	}
 
-	void page_indexing_handler() {
+	void parse_excerpt(se_encoding encoding,
+					   const word_params& excerpt, 
+					   words_container& cont) {
+		std::vector<std::string> words;
+
+		page_text_parser parser(std::get<1>(excerpt), encoding);
+		parser.parse(std::get<0>(excerpt), words);
+
+		for (auto& w : words) {
+			if (cont.find(w) == cont.end())
+				cont.insert({ w, { w, std::get<1>(excerpt), std::get<2>(excerpt) } });
+			else
+				std::get<2>(cont[w]) += std::get<2>(excerpt);
+		}
+	}
+
+	void collecting_info_handler() {
 		while (!stop_flag) {
 			std::pair<std::string, std::string> page_site_urls;
 
 			pool.set_inactive(std::this_thread::get_id());
-			extract_from_ts_queue(source_for_analyze, page_site_urls);
-			SE_LOG("Extracted data for analysis: " << page_site_urls.first << " ; " << page_site_urls.second << "\n");
+			extract_from_ts_queue(source_for_collect, page_site_urls);
+			SE_LOG("Extracted data: " << page_site_urls.first << " ; " << page_site_urls.second << "\n");
 			pool.set_active(std::this_thread::get_id());
 
+			auto begin = std::chrono::steady_clock::now();
+
 			MAKE_REQUEST(page_site_id_resp, page_and_site_id, (
-				page_site_urls.first,
-				page_site_urls.second
+				string_enc{ page_site_urls.first,   encoding_t::ANSI },
+				string_enc{ page_site_urls.second,  encoding_t::ANSI }
 			))
 
-			MAKE_REQUEST_WITH_RESPONSE(page_info, page_info, (
-				page_info,
-				page_site_urls.first
+			MAKE_REQUEST(page_info_id_resp, page_info, (
+				string_enc{ page_site_urls.first, encoding_t::ANSI }
 			))
-
-			words_container words;
-			std::vector<std::thread> threads(page_info.text_excerpts.size());
-			for (auto& excerpt : page_info.text_excerpts) {
-				threads.push_back(std::thread(
-					&pi_page_indexing_service::f,
-					this,
-					page_info.page_encoding,
-					std::ref(excerpt),
-					std::ref(words)
-				));
-			}
 
 			GET_RESPONSE(page_site_id_resp, page_site_resp, page_and_site_id_response)
+			GET_RESPONSE(page_info_id_resp, page_info_resp, page_info_response)
 
-			for (auto& th : threads)
-				th.join();
+			words_container container;
+			for (auto& excerpt : page_info_resp.text_excerpts) {
+				parse_excerpt(page_info_resp.page_encoding, excerpt, container);
+			}
+			
+			en_de_coder coder(page_info_resp.page_encoding);
 
-			for (auto& w : words) {
-				source_for_record.add(S{
+			for (auto& w : container) {
+				coder.encode(std::get<0>(w.second));
+				source_for_record.add(page_indexing_info {
 					page_site_resp.page_id,
 					page_site_resp.site_id,
-					std::get<0>(w.second),
-					converter_to_language_t().to_string(std::get<1>(w.second)),
+					{ std::get<0>(w.second),						  page_info_resp.page_encoding },
+					{ se_language(std::get<1>(w.second)).to_string(), encoding_t::UTF_8			   },
 					std::get<2>(w.second)
 				});
 			}
+
+			auto end = std::chrono::steady_clock::now();
+
+			std::lock_guard<std::mutex> locker(mutex);
+			auto time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+			average = (average * counter + time.count()) / (counter + 1);
+			counter++;
+			std::cout << "End of analyze! Current time: " << time.count() << " ms ; Total: " << counter << " ; Avg time: " << average << std::endl;
 		}
 	}
 
 protected:
 	void clear() override {
-		source_for_analyze.clear();
+		source_for_collect.clear();
 		source_for_record.clear();
 	}
 
@@ -172,9 +186,10 @@ protected:
 	}
 
 	void add_power_distribution(const service_ptr& service) const override {
-		service->power_distribution.push_back({ &pi_page_indexing_service::page_indexing_handler, 1 });
-		service->power_distribution.push_back({ &pi_page_indexing_service::requests_handler,      1 });
-		service->power_distribution.push_back({ &pi_page_indexing_service::record_handler,        1 });
+		service->power_distribution.push_back({ &pi_page_indexing_service::collecting_info_handler,  35 });
+		service->power_distribution.push_back({ &pi_page_indexing_service::recording_info_handler,   60 });
+		service->power_distribution.push_back({ &pi_page_indexing_service::requests_handler,         1 });
+
 	}
 
 	void add_request_responders(const service_ptr& service) const override {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "gumbo.h"
+#include <libs/gumbo_parser/src/gumbo.h>
 
-template<class T>
+template<typename T>
 class automaton
 {
 protected:
@@ -33,3 +33,9 @@ public:
 
     virtual ~automaton() = default;
 };
+
+template<typename T>
+const T automaton<T>::default_value;
+
+template<typename T>
+const T automaton<T>::forbidden_value;

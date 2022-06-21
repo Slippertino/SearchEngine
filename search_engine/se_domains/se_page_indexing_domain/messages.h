@@ -1,11 +1,13 @@
 #pragma once
 
-#include <html_text_analyzer.h>
+#include <tools/html_text_analyzer.hpp>
+#include <text_property_types/se_encoding.hpp>
+#include <text_property_types/se_language.hpp>
 #include "../se_services_infrastructure/message_core.h"
 
 struct site_recording_request : context
 {
-	std::string site;
+	string_enc site;
 
 	SE_CONTEXT(
 		site_recording_request,
@@ -35,8 +37,8 @@ struct site_recording_response : context
 
 struct url_to_analyze_request : context
 {
-	std::string prefix;
-	std::string url;
+	string_enc prefix;
+	string_enc url;
 
 	SE_CONTEXT(
 		url_to_analyze_request,
@@ -53,11 +55,11 @@ struct url_to_analyze_request : context
 
 struct url_to_analyze_response : context
 {
-	encoding_t page_encoding;
-	std::string content;
+	se_encoding page_encoding;
+	string_enc content;
 	long status_code;
 	bool is_valid;
-	std::unordered_set<std::string> linked_urls;
+	std::unordered_set<string_enc> linked_urls;
 	response_status status;
 
 	SE_CONTEXT(
@@ -81,8 +83,8 @@ struct url_to_analyze_response : context
 
 struct record_page_info_request : context
 {
-	std::string path;
-	std::string content;
+	string_enc path;
+	string_enc content;
 	long code;
 
 	SE_CONTEXT(
@@ -116,7 +118,7 @@ struct record_page_info_response : context
 
 struct is_unique_page_url_request : context
 {
-	std::string url;
+	string_enc url;
 
 	SE_CONTEXT(
 		is_unique_page_url_request,
@@ -149,7 +151,7 @@ struct is_unique_page_url_response : context
 
 struct init_database_request : context
 {
-	std::string database_name;
+	string_enc database_name;
 
 	SE_CONTEXT(
 		init_database_request,
@@ -179,8 +181,8 @@ struct init_database_response : context
 
 struct page_indexing_request : context
 {
-	std::string url;
-	std::string prefix;
+	string_enc url;
+	string_enc prefix;
 
 	SE_CONTEXT(
 		page_indexing_request,
@@ -212,7 +214,7 @@ struct page_indexing_response : context
 
 struct page_info_request : context
 {
-	std::string url;
+	string_enc url;
 
 	SE_CONTEXT(
 		page_info_request,
@@ -227,8 +229,8 @@ struct page_info_request : context
 
 struct page_info_response : context
 {
-	encoding_t page_encoding;
-	std::vector<std::tuple<std::string, language_t, html_text_analyzer::ratio_type>> text_excerpts;
+	se_encoding page_encoding;
+	std::vector<std::tuple<std::string, se_language, html_text_analyzer::ratio_type>> text_excerpts;
 	response_status status;
 
 	SE_CONTEXT(
@@ -248,8 +250,8 @@ struct page_info_response : context
 
 struct page_and_site_id_request : context
 {
-	std::string page_url;
-	std::string site_url;
+	string_enc page_url;
+	string_enc site_url;
 
 	SE_CONTEXT (
 		page_and_site_id_request,
@@ -288,60 +290,51 @@ struct page_and_site_id_response : context
 struct record_word_info_request : context
 {
 	size_t site_id;
-	std::string lang;
-	std::string stemmed_word;
+	std::vector<std::pair<string_enc, string_enc>> words_params;
 
 	SE_CONTEXT(
 		record_word_info_request,
 		site_id,
-		lang,
-		stemmed_word
+		words_params
 	)
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
 		record_word_info_request,
 		site_id,
-		lang,
-		stemmed_word
+		words_params
 	)
 };
 
 struct record_word_info_response : context
 {
-	size_t word_id;
+	std::vector<size_t> words_id;
 	response_status status;
 
 	SE_CONTEXT(
 		record_word_info_response,
-		word_id,
+		words_id,
 		status
 	)
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
 		record_word_info_response,
-		word_id,
+		words_id,
 		status
 	)
 };
 
 struct record_word_to_index_request : context
 {
-	size_t page_id;
-	size_t word_id;
-	html_text_analyzer::ratio_type rank;
+	std::vector<std::tuple<size_t, size_t, html_text_analyzer::ratio_type>> words_index_params;
 
 	SE_CONTEXT(
 		record_word_to_index_request,
-		page_id,
-		word_id,
-		rank
+		words_index_params
 	)
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
 		record_word_to_index_request,
-		page_id,
-		word_id,
-		rank
+		words_index_params
 	)
 };
 

@@ -9,6 +9,12 @@ set(SE_LIB_DIRS ${CMAKE_CURRENT_LIST_DIR}/third_party)
 set(SE_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/search_engine)
 set(SE_CMAKE_DIR ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
+if (MSVC)
+  add_compile_options(/bigobj)
+else ()
+  add_compile_options(-Wa,-mbig-obj)
+endif ()
+
 file(GLOB SE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/search_engine_analyzers)

@@ -25,13 +25,15 @@ private:
 
 		auto req = *static_cast<init_database_request*>(args.get());
 
-		ostr << "drop database if exists " << req.database_name << ";";
+		to_mysql_format({ &req.database_name });
+
+		ostr << "drop database if exists " << req.database_name.str << ";";
 		reset(ostr, res);
 
-		ostr << "create database " << req.database_name << ";";
+		ostr << "create database " << req.database_name.str << ";";
 		reset(ostr, res);
 
-		ostr << "use " << req.database_name << ";";
+		ostr << "use " << req.database_name.str << ";";
 		reset(ostr, res);
 
 		ostr << "create table "
@@ -67,6 +69,9 @@ private:
 		ostr << "truncate table " << words_info_tb_name << ";";
 		reset(ostr, res);
 
+		ostr << "create unique index " << words_info_tb_name << "_index on " << words_info_tb_name << "(site_id, value(100),lang(30));";
+		reset(ostr, res);
+
 		ostr << "create table "
 			 << "if not exists " << search_index_tb_name << " ("
 			 << "id int primary key auto_increment,"
@@ -89,8 +94,10 @@ private:
 
 		auto req = *static_cast<site_recording_request*>(args.get());
 
+		to_mysql_format({ &req.site });
+
 		ostr << "insert into " << sites_list_tb_name << " (url) values"
-			 << "(\"" << req.site << "\");";
+			 << "(\"" << req.site.str << "\");";
 		reset(ostr, res);
 
 		return res;
@@ -102,9 +109,10 @@ private:
 
 		auto req = *static_cast<is_unique_page_url_request*>(args.get());
 
-		ostr << "select path from "
-			 << pages_info_tb_name << "\n";
-		ostr << "where path = \"" << req.url << "\"";
+		to_mysql_format({ &req.url });
+
+		ostr << "select path from " << pages_info_tb_name << "\n";
+		ostr << "where path = \"" << req.url.str << "\"";
 		reset(ostr, res);
 
 		return res;
@@ -116,10 +124,10 @@ private:
 
 		auto req = *static_cast<record_page_info_request*>(args.get());
 
-		to_mysql_format(req.content);
+		to_mysql_format({ &req.path, &req.content });
 
 		ostr << "insert into " << pages_info_tb_name << " (path, code, content) values"
-			 << "(\"" << req.path << "\"," << req.code << ",\"" << req.content << "\");";
+			 << "(\"" << req.path.str << "\"," << req.code << ",\"" << req.content.str << "\");";
 		reset(ostr, res);
 
 		return res;
@@ -131,12 +139,14 @@ private:
 
 		auto req = *static_cast<page_and_site_id_request*>(args.get());
 
+		to_mysql_format({ &req.page_url, &req.site_url });
+
 		ostr << "select id from " << pages_info_tb_name << std::endl
-			 << "where path = " << "\"" << req.page_url << "\"";
+			 << "where path = " << "\"" << req.page_url.str << "\"";
 		reset(ostr, res);
 
 		ostr << "select id from " << sites_list_tb_name << std::endl
-			 << "where url = " << "\"" << req.site_url << "\"";
+			 << "where url = " << "\"" << req.site_url.str << "\"";
 		reset(ostr, res);
 
 		return res;
@@ -148,21 +158,57 @@ private:
 
 		auto req = *static_cast<record_word_info_request*>(args.get());
 
+		for (auto& cur : req.words_params) {
+			to_mysql_format({ &cur.first, &cur.second });
+		}
+
 		ostr << "update " << words_info_tb_name << std::endl
-			 << "set frequency = frequency + 1 where "
-			 << "site_id = " << req.site_id << ","
-			 << "value = " << "\"" << req.stemmed_word << "\","
-			 << "lang = " << "\"" << req.lang << "\";";
+			 << "set frequency = frequency + 1 where ";
+		for (auto i = 0; i < req.words_params.size(); ++i) {
+			auto& cur = req.words_params[i];
+
+			ostr << "(site_id = " << req.site_id << " and "
+				 << "value = " << "\"" << cur.first.str << "\" and "
+				 << "lang = " << "\"" << cur.second.str << "\")";
+
+			if (i + 1 == req.words_params.size()) {
+				ostr << ";";
+			} else {
+				ostr << " or ";
+			}
+		}
 		reset(ostr, res);
 
-		ostr << "insert into " << words_info_tb_name << " (site_id, value, lang, frequency) values"
-			 << "(" << req.site_id << ",\"" << req.stemmed_word << "\"" << req.lang << "\"," << 0 << ");";
+		ostr << "insert ignore into " << words_info_tb_name << " (site_id, value, lang, frequency) values ";
+		for (auto i = 0; i < req.words_params.size(); ++i) {
+			auto& cur = req.words_params[i];
+
+			ostr << "(" << req.site_id << ",\"" << cur.first.str << "\",\"" << cur.second.str << "\"," << 1 << ")";
+
+			if (i + 1 == req.words_params.size()) {
+				ostr << ";";
+			}
+			else {
+				ostr << ",";
+			}
+		}
 		reset(ostr, res);
 
-		ostr << "select id from " << words_info_tb_name << " where "
-			 << "site_id = " << req.site_id 
-			 << ", value = \"" << req.stemmed_word 
-			 << "\", lang = \"" << req.lang << "\";";
+		ostr << "select id from " << words_info_tb_name << " where ";
+		for (auto i = 0; i < req.words_params.size(); ++i) {
+			auto& cur = req.words_params[i];
+
+			ostr << "(site_id = " << req.site_id << " and "
+				 << "value = \"" << cur.first.str << "\" and "
+				 << "lang = \"" << cur.second.str << "\")";
+
+			if (i + 1 == req.words_params.size()) {
+				ostr << ";";
+			}
+			else {
+				ostr << " or ";
+			}
+		}
 		reset(ostr, res);
 
 		return res;
@@ -174,8 +220,20 @@ private:
 
 		auto req = *static_cast<record_word_to_index_request*>(args.get());
 
-		ostr << "insert into " << search_index_tb_name << " (page_id, word_id, ranking) values"
-			 << "(" << req.page_id << "," << req.word_id << "," << req.rank << ");";
+		ostr << "insert into " << search_index_tb_name << " (page_id, word_id, ranking) values";
+
+		for (auto i = 0; i < req.words_index_params.size(); ++i) {
+			auto cur = req.words_index_params[i];
+
+			ostr << "(" << std::get<0>(cur) << "," << std::get<1>(cur) << "," << std::get<2>(cur) << ")";
+
+			if (i + 1 == req.words_index_params.size()) {
+				ostr << ";";
+			} else {
+				ostr << ",";
+			}
+		}
+
 		reset(ostr, res);
 
 		return res;

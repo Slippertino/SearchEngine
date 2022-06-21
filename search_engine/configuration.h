@@ -41,10 +41,9 @@ public:
 				configure_info.sources.push_back(cur);
 
 			is_filled = true;
-		}
-		catch (...)
-		{
-			throw std::exception("Error while reading the configuration file!");
+		} catch (const std::exception& ex) {
+			std::cout << ex.what() << std::endl;
+			//throw std::exception("Error while reading the configuration file!");
 		}
 	}
 

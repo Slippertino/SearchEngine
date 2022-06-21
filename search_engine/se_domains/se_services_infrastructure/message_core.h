@@ -4,6 +4,8 @@
 #include <memory>
 #include <unordered_set>
 #include <nlohmann/json.hpp>
+#include <tools/en_de_coder.hpp>
+#include "json_encoding_converter.hpp"
 
 enum class runtime_status
 {
@@ -16,6 +18,7 @@ enum class message_type
 	REQUEST,
 	RESPONSE
 };
+
 
 #define SE_EXPAND( x ) x
 #define SE_GET_MACRO(_1, _2, _3, _4, _5, _6, _7, _NAME,...) _NAME
@@ -37,30 +40,49 @@ enum class message_type
         SE_PASTE2, \
         SE_PASTE1)(__VA_ARGS__))
 
-struct context
-{
 #define DECLARE_ARG(name) const decltype(name)& in_##name
 #define DECLATE_INIT(name) name(in_##name)
+#define DECLARE_REF(name) std::ref(name)
+
+#define CODE_DATA(func_name, method_name) \
+	template<typename... Args> \
+	void func_name(Args&&... args) {} \
+	template<typename T, typename... Args> \
+	void func_name(T&& arg, Args&&... args) { \
+		json_encoding_converter<T>().method_name(std::forward<T>(arg)); \
+		func_name(std::forward<Args>(args)...); \
+	}
+
+#define ENCODE_DATA_METHODS CODE_DATA(encode_data, encode)
+#define DECODE_DATA_METHODS CODE_DATA(decode_data, decode)
 
 #define SE_CONTEXT(type, ...) \
 	type() = default; \
 	explicit type(SE_EXPAND(SE_PASTE(DECLARE_ARG, __VA_ARGS__))) : \
 				  SE_EXPAND(SE_PASTE(DECLATE_INIT, __VA_ARGS__)) { } \
-	std::string to_string() const override {  \
+	std::string to_string() override {  \
 		nlohmann::json js; \
+		encode_data(SE_EXPAND(SE_PASTE(DECLARE_REF, __VA_ARGS__))); \
 		nlohmann::to_json(js, *this); \
+		decode_data(SE_EXPAND(SE_PASTE(DECLARE_REF, __VA_ARGS__))); \
 		return js.dump(); \
 	}
 
+struct context
+{
+	ENCODE_DATA_METHODS 
+	DECODE_DATA_METHODS 
+
 	context() = default;
 
-	virtual std::string to_string() const = 0;
+	virtual std::string to_string() = 0;
 };
+
 
 struct response_status : context
 {
 	runtime_status status = runtime_status::FAIL;
-	std::string message;
+	string_enc message = {"", encoding_t::UNKNOWN};
 
 	SE_CONTEXT(
 		response_status, 

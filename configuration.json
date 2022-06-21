@@ -1,13 +1,14 @@
 {
 	"database": {
-		"url":           "tcp://127.0.0.1",
-		"user_name":     "root",
-		"password":      "qwerty1234",
+		"url": "tcp://127.0.0.1",
+		"user_name": "root",
+		"password": "qwerty1234",
 		"database_name": "search_index"
 	},
 
 	"sources": [
+		"https://en.cppreference.com",
 		"https://www.cplusplus.com",
-		"https://en.cppreference.com"
+		"https://www.woman.ru"
 	]
 }

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cpr/cpr.h>
-#include <html_text_analyzer.h>
-#include <en_de_coder.h>
+#include <tools/html_text_analyzer.hpp>
+#include <tools/en_de_coder.hpp>
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../../se_service.hpp"
@@ -27,14 +27,14 @@ private:
 		source.add(req);
 
 		std::pair<html_text_analyzer::page_info, response_status> info;
-		get_from_ts_unordered_map(info_storage, req->url, info);
+		get_from_ts_unordered_map(info_storage, req->url.str, info);
 		if (stop_flag)
 			return;
 
 		MAKE_RESPONSE(url_to_analyze, (
 			msg.id, 
 			info.first.page_encoding, 
-			info.first.content,
+			string_enc{ info.first.content, info.first.page_encoding },
 			info.first.status_code,
 			is_valid_page(info.first) && is_successful_analysis(info.second),
 			info.first.linked_urls,
@@ -46,7 +46,7 @@ private:
 		auto req = static_cast<page_info_request*>(msg.body.get());
 
 		std::pair<html_text_analyzer::page_info, response_status> info;
-		extract_from_ts_unordered_map(info_storage, req->url, info);
+		extract_from_ts_unordered_map(info_storage, req->url.str, info);
 		if (stop_flag)
 			return;
 
@@ -73,7 +73,7 @@ private:
 
 	bool is_valid_page(const html_text_analyzer::page_info& info) const {
 		return cpr::status::is_success(info.status_code) && 
-			   info.page_encoding != encoding_t::UNKNOWN;
+			   info.page_encoding.get_type() != encoding_t::UNKNOWN;
 	}
 
 	void page_analyze_handler()
@@ -86,13 +86,13 @@ private:
 
 			pool.set_inactive(std::this_thread::get_id());
 			extract_from_ts_queue(source, req);
-			if (stop_flag && !req || info_storage.find(req->url) != info_storage.end())
+			if (stop_flag && !req || info_storage.find(req->url.str) != info_storage.end())
 				continue;
 			pool.set_active(std::this_thread::get_id());
 
 			try {
-				res.url = req->url;
-				res.prefix = req->prefix;
+				res.url = req->url.str;
+				res.prefix = req->prefix.str;
 
 				cpr::Response resp_info;
 
@@ -117,11 +117,11 @@ private:
 				analyzer.run_parse(res);
 
 				status.status = runtime_status::SUCCESS;
-				status.message = "Successful analysis of the page was carried out";
+				status.message = { "Successful analysis of the page was carried out", encoding_t::ANSI };
 			}
 			catch (const std::exception& ex) {
 				status.status = runtime_status::FAIL;
-				status.message = ex.what();
+				status.message = { ex.what(), encoding_t::ANSI };
 			}
 
 			SE_LOG("Url : " << res.url <<

@@ -24,15 +24,25 @@ public:
 template<>
 class builder<pi_domain> : public abstract_domain_builder<pi_domain>
 {
+private:
+	template<typename service_t>
+	void add_service(const domain_ptr& domain, size_t id) const {
+		auto service = builder<service_t>().build(
+			domain->id,
+			domain->logger_path,
+			domain->router
+		);
+
+		domain->services[id] = std::make_pair(service, service->get_power_value());
+	}
+
 protected:
 	void add_services(const domain_ptr& domain) const override {
 		domain->router = std::make_shared<se_router>();
-
-		domain->services = {
-			std::make_pair(builder<pi_page_analyzer_service>() .build(domain->id, domain->logger_path, domain->router),  2),
-			std::make_pair(builder<pi_db_responder_service>()  .build(domain->id, domain->logger_path, domain->router),  2),
-			std::make_pair(builder<pi_page_dumper_service>()   .build(domain->id, domain->logger_path, domain->router),  1),
-			std::make_pair(builder<pi_page_indexing_service>() .build(domain->id, domain->logger_path, domain->router),  1),
-		};
+		
+		add_service<pi_page_analyzer_service>(domain, 0);
+		add_service<pi_db_responder_service> (domain, 1);
+		add_service<pi_page_dumper_service>  (domain, 2);
+		add_service<pi_page_indexing_service>(domain, 3);
 	}
 };

@@ -17,15 +17,24 @@ protected:
 	static const std::string search_index_tb_name;
 	static const std::string sites_list_tb_name;
 
+	static const en_de_coder internal_coder;
+
 	thread_safe_unordered_map<std::string, query_generator> message_name_query_interpreter;
 
 protected:
-	static void to_mysql_format(std::string& str) {
-		const std::string special_symbols = "\"\'\\";
+	static void to_mysql_format(const std::initializer_list<string_enc*> args) {
+		static const std::string special_symbols = "\"\'\\";
 
-		for (auto i = 0; i < str.size(); ++i)
-			if (special_symbols.find(str[i]) != std::string::npos)
-				str.insert(i++, "\\");
+		std::for_each(args.begin(), args.end(), [&](string_enc* val) {
+			en_de_coder external_coder(val->enc);
+			external_coder.decode(val->str);
+
+			for (auto i = 0; i < val->str.size(); ++i)
+				if (special_symbols.find(val->str[i]) != std::string::npos)
+					val->str.insert(i++, "\\");
+
+			internal_coder.encode(val->str);
+		});
 	}
 
 	static void reset(std::ostringstream& ostr, std::vector<std::string>& buff) {
@@ -55,3 +64,5 @@ const std::string se_db_queries::pages_info_tb_name   = "pages";
 const std::string se_db_queries::words_info_tb_name   = "words";
 const std::string se_db_queries::search_index_tb_name = "search_index";
 const std::string se_db_queries::sites_list_tb_name   = "sites";
+
+const en_de_coder se_db_queries::internal_coder = en_de_coder(encoding_t::UTF_8);

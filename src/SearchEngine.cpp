@@ -3,11 +3,6 @@
 #include <iostream>
 #include "mysql/jdbc.h"
 #include "cpr/cpr.h"
-#include "stemmer.h"
-#include "html_text_analyzer.h"
-#include "page_text_parser.h"
-#include "en_de_coder.h"
-#include "gumbo.h"
 #include <unordered_map>
 #include "thread_pool.hpp"
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
@@ -17,10 +12,11 @@
 #include "configuration.h"
 #include <array>
 #include <regex>
+#include "../search_engine_analyzers/tools/en_de_coder.hpp"
 #include "search_engine.h"
 
-const char* configure_path = "..\\..\\..\\configuration.json";
 
+const char* configure_path = "..\\..\\..\\configuration.json";
 
 class polygon
 {
@@ -143,7 +139,7 @@ void test() {
 }
 
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv) { 
     setlocale(LC_ALL, "ru");
     std::srand(std::time(nullptr));
 
@@ -152,10 +148,6 @@ int main(int argc, char** argv) {
 
     auto engine = builder<search_engine>().build();
     engine->setup(config);
-    engine->run(2000);
+    engine->run(1000);
 }
-
-/*
-        "https://www.cplusplus.com",
-        "https://en.cppreference.com"*/
        

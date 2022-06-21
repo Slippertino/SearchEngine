@@ -1,7 +1,7 @@
 #pragma once
 
-#include <en_de_coder.h>
-#include <url_analyzer.h>
+#include <tools/en_de_coder.hpp>
+#include <tools/url_analyzer.hpp>
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include <semaphore.hpp>
@@ -91,10 +91,11 @@ private:
 
 			semaphore.enter(1);
 			extract_from_buffer(link_prefix);
-			en_de_coder().encode(link_prefix.first);
 
-			MAKE_REQUEST_WITH_RESPONSE(result, is_unique_page_url, 
-				(result, link_prefix.first)) 
+			MAKE_REQUEST_WITH_RESPONSE(result, is_unique_page_url, (
+				result, 
+				string_enc{ link_prefix.first, encoding_t::ANSI }
+			))
 			CHECK_FOR_STOP(link_prefix)
 
 			if (!result.answer ||
@@ -104,24 +105,33 @@ private:
 			}
 
 			if (link_prefix.first == link_prefix.second) {
-				MAKE_REQUEST_WITH_RESPONSE(resp, site_recording, 
-					(resp, link_prefix.first))
+				MAKE_REQUEST_WITH_RESPONSE(resp, site_recording, (
+					resp, 
+					string_enc{ link_prefix.first, encoding_t::ANSI }
+				))
 				CHECK_FOR_STOP(link_prefix)
 			}
 
-			MAKE_REQUEST_WITH_RESPONSE(page_info, url_to_analyze, 
-				(page_info, link_prefix.second, link_prefix.first))
+			MAKE_REQUEST_WITH_RESPONSE(page_info, url_to_analyze, (
+				page_info, 
+				string_enc{ link_prefix.second, encoding_t::ANSI },
+				string_enc{ link_prefix.first,  encoding_t::ANSI }
+			))
 			CHECK_FOR_STOP(link_prefix)
 
-			MAKE_REQUEST_WITH_RESPONSE(record_answer, record_page_info, 
-				(record_answer, link_prefix.first, page_info.content, page_info.status_code))
+			MAKE_REQUEST_WITH_RESPONSE(record_answer, record_page_info, (
+				record_answer, 
+				string_enc{ link_prefix.first, encoding_t::ANSI },
+				page_info.content, 
+				page_info.status_code
+			))
 			CHECK_FOR_STOP(link_prefix)
 
 			semaphore.exit();
 
-			mutex.lock();
+			/*mutex.lock();
 			std::cout << link_prefix.first << "\n";
-			mutex.unlock();
+			mutex.unlock();*/
 
 			SE_LOG(link_prefix.first << " | " << "Size: " << source.size() << " | "
 									 << "Concurrency: " << pool.get_active_processes_count() << " | "
@@ -131,15 +141,15 @@ private:
 				continue;
 
 			MAKE_REQUEST(page_indexing_id_resp, page_indexing, (
-				link_prefix.first,
-				link_prefix.second
+				string_enc{ link_prefix.first, encoding_t::ANSI },
+				string_enc{ link_prefix.second, encoding_t::ANSI }
 			))
 
 			semaphore.enter(2);
 			en_de_coder coder(page_info.page_encoding);
 			for (auto s : page_info.linked_urls) {
-				coder.decode(s);
-				auto url = url_analyzer(s, link_prefix.second).convert_to_url();
+				coder.decode(s.str);
+				auto url = url_analyzer(s.str, link_prefix.second).convert_to_url();
 
 				if (cache.find(url) == cache.end()) {
 					add_to_buffer({
@@ -156,9 +166,7 @@ private:
 	}
 
 	void load_urls(std::vector<std::string>& urls) {
-		en_de_coder coder;
 		for (auto& url : urls) {
-			coder.encode(url);
 			add_to_buffer({ url, url });
 		}
 	}
