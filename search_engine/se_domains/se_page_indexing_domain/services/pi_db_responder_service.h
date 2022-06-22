@@ -169,19 +169,18 @@ private:
 		record_word_info_response resp;
 
 		try {
-			auto count = comps.statement->executeUpdate(comps.queries[0]);
+			auto updated_cnt = comps.statement->executeUpdate(comps.queries[0]);
+			auto inserted_cnt = comps.statement->executeUpdate(comps.queries[1]);
 
-			if (!count) {
-				count = comps.statement->executeUpdate(comps.queries[1]);
-			}
-
-			if (!count) {
+			if (!updated_cnt && !inserted_cnt) {
 				throw std::exception("Table of words has not been successfully updated!\n");
 			}
 
-			auto res = comps.statement->executeQuery(comps.queries[2]);
-			res->beforeFirst(); res->next();
-			resp.word_id = res->getUInt64("id");
+			for (auto i = 2; i < comps.queries.size(); ++i) {
+				auto res = comps.statement->executeQuery(comps.queries[i]);
+				res->beforeFirst(); res->next();
+				resp.words_id.push_back(res->getUInt64("id"));
+			}
 
 			resp.status.status = runtime_status::SUCCESS;
 			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };

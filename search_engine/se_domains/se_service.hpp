@@ -136,7 +136,6 @@ protected:
 			std::cout << "Error while trying to make request with following body type: " << typeid(context_t).name()
 					  << "! Message : " << ex.what() << "\n";
 
-			(std::cout << ... << args) << "\n";
 			SE_LOG(message_type::REQUEST, "Error while trying to make request with following body type: " << typeid(context_t).name()
 									   << "! Message : " << ex.what() << "\n");
 		}

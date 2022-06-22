@@ -15,6 +15,12 @@ public:
 		cv.notify_one();
 	}
 
+	void add(T&& value) {
+		std::lock_guard<std::mutex> locker(mut);
+		data_source.push(std::move(value));
+		cv.notify_one();
+	}
+
 	void wait_and_erase(T& value) {
 		std::unique_lock<std::mutex> locker(mut);
 		cv.wait(locker, [=]() { return !data_source.empty(); });

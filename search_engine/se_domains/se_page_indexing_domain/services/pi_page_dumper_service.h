@@ -11,8 +11,7 @@
 #include <thread_pool.hpp>
 
 
-class pi_page_dumper_service : public se_service<pi_page_dumper_service>
-{
+class pi_page_dumper_service : public se_service<pi_page_dumper_service> {
 	SE_SERVICE(pi_page_dumper_service)
 
 	#define CHECK_FOR_STOP(link_prefix) if (check_for_stop(link_prefix)) continue;
@@ -129,9 +128,9 @@ private:
 
 			semaphore.exit();
 
-			/*mutex.lock();
+			mutex.lock();
 			std::cout << link_prefix.first << "\n";
-			mutex.unlock();*/
+			mutex.unlock();
 
 			SE_LOG(link_prefix.first << " | " << "Size: " << source.size() << " | "
 									 << "Concurrency: " << pool.get_active_processes_count() << " | "

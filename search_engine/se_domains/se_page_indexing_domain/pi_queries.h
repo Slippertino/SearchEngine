@@ -44,16 +44,13 @@ private:
 			 << "content mediumtext not null);";
 		reset(ostr, res);
 
-		ostr << "truncate table " << pages_info_tb_name << ";";
+		ostr << "create index " << pages_info_tb_name << "_index on " << pages_info_tb_name << "(path(50));";
 		reset(ostr, res);
 
 		ostr << "create table "
 			 << "if not exists " << sites_list_tb_name << " ("
 			 << "id int primary key auto_increment,"
 			 << "url mediumtext not null);";
-		reset(ostr, res);
-
-		ostr << "truncate table " << sites_list_tb_name << ";";
 		reset(ostr, res);
 
 		ostr << "create table "
@@ -64,9 +61,6 @@ private:
 			 << "lang text not null,"
 			 << "frequency int not null,"
 			 << "foreign key(site_id) references " << sites_list_tb_name << "(id) on delete cascade);";
-		reset(ostr, res);
-
-		ostr << "truncate table " << words_info_tb_name << ";";
 		reset(ostr, res);
 
 		ostr << "create unique index " << words_info_tb_name << "_index on " << words_info_tb_name << "(site_id, value(100),lang(30));";
@@ -82,7 +76,7 @@ private:
 			 << "foreign key(word_id) references " << words_info_tb_name << "(id) on delete cascade);";
 		reset(ostr, res);
 
-		ostr << "truncate table " << search_index_tb_name << ";";
+		ostr << "create unique index " << search_index_tb_name << "_index on " << search_index_tb_name << "(page_id, word_id);";
 		reset(ostr, res);
 
 		return res;
@@ -194,22 +188,14 @@ private:
 		}
 		reset(ostr, res);
 
-		ostr << "select id from " << words_info_tb_name << " where ";
 		for (auto i = 0; i < req.words_params.size(); ++i) {
 			auto& cur = req.words_params[i];
-
-			ostr << "(site_id = " << req.site_id << " and "
+			ostr << "select id from " << words_info_tb_name << " where "
+				 << "site_id = " << req.site_id << " and "
 				 << "value = \"" << cur.first.str << "\" and "
-				 << "lang = \"" << cur.second.str << "\")";
-
-			if (i + 1 == req.words_params.size()) {
-				ostr << ";";
-			}
-			else {
-				ostr << " or ";
-			}
+				 << "lang = \"" << cur.second.str << "\";";
+			reset(ostr, res);
 		}
-		reset(ostr, res);
 
 		return res;
 	}

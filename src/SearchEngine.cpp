@@ -11,8 +11,10 @@
 #include "builders/builder.hpp"
 #include "configuration.h"
 #include <array>
+#include <queue>
 #include <regex>
 #include "../search_engine_analyzers/tools/en_de_coder.hpp"
+#include "se_domains/se_services_infrastructure/json_encoding_converter.hpp"
 #include "search_engine.h"
 
 
@@ -138,6 +140,93 @@ void test() {
     std::cout << pol.run() << std::endl;
 }
 
+/*
+class ITest {
+public:
+    virtual void print() const = 0;
+};
+
+template<typename T>
+class A : public ITest{
+public:
+    void print() const override {
+        std::cout << "Unknown!\n";
+    }
+};
+
+template<>
+class A<int> : public ITest {
+public:
+    void print() const override {
+        std::cout << "Int!\n";
+    }
+};
+
+template<>
+class A<double> : public ITest {
+public:
+    void print() const override {
+        std::cout << "Double!\n";
+    }
+};
+
+template<typename T1, typename T2>
+class A<std::pair<T1, T2>> : public ITest {
+public:
+    void print() const override {
+        std::cout << "Pair!\n";
+        
+        ITest* t1 = new A<T1>();
+        ITest* t2 = new A<T2>();
+
+        t1->print();
+        t2->print();
+    }
+};
+
+template<typename... Args>
+class A<std::tuple<Args...>> : public ITest {
+private:
+    template<typename T, typename... Vals>
+    void print_type() const {
+        (new A<T>())->print();
+
+        if constexpr (sizeof...(Vals) > 0) {
+            print_type<Vals...>();
+        }
+    }
+
+public:
+    void print() const override {
+        std::cout << "Tuple!\n";
+
+        if constexpr (sizeof...(Args) > 0) {
+            print_type<Args...>();
+        }
+    }
+};
+
+template<typename T>
+class A<std::vector<T>> : public ITest {
+public:
+    void print() const override {
+        std::cout << "Vector!\n";
+
+        (new A<T>())->print();
+    }
+};
+
+template<typename Key, typename Value>
+class A<std::map<Key, Value>> : public ITest {
+public:
+    void print() const override {
+        std::cout << "Map!\n";
+
+        (new A<Key>())->print();
+        (new A<Value>())->print();
+    }
+};*/
+
 
 int main(int argc, char** argv) { 
     setlocale(LC_ALL, "ru");
@@ -150,4 +239,3 @@ int main(int argc, char** argv) {
     engine->setup(config);
     engine->run(1000);
 }
-       
