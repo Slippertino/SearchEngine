@@ -5,8 +5,7 @@
 
 namespace fs = std::filesystem;
 
-class se_component
-{
+class se_component {
 protected:
 	size_t id;
 	fs::path logger_path;

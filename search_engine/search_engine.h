@@ -7,13 +7,12 @@
 #include "se_logger/se_logger.h"
 #include <filesystem>
 
-class search_engine : public se_component
-{
+class search_engine : public se_component {
 	friend class builder<search_engine>;
 
 private:
 	static const fs::path logs_root;
-	static std::atomic_size_t id_automaton;
+	static std::atomic<size_t> id_automaton;
 
 	std::shared_ptr<se_component> page_indexing_domain;
 
@@ -91,11 +90,10 @@ public:
 
 };
 const fs::path search_engine::logs_root = fs::path(R"(..\..\..)") / fs::path(R"(logs)");
-std::atomic_size_t search_engine::id_automaton{ 0 };
+std::atomic<size_t> search_engine::id_automaton{ 0 };
 
 template<>
-class builder<search_engine> : public abstract_engine_builder<search_engine>
-{
+class builder<search_engine> : public abstract_engine_builder<search_engine> {
 protected:
 	void add_domains(const engine_ptr& engine) const override {
 		engine->page_indexing_domain = builder<pi_domain>().build(engine->id, engine->logger_path);

@@ -7,8 +7,7 @@
 #include "../text_property_types/se_encoding.hpp"
 #include "../text_property_types/se_language.hpp"
 
-class stemmer
-{
+class stemmer {
 private:
 	static const std::unordered_map<se_language, const char*> language_t_to_name_interpreter;
 	static const std::unordered_map<se_encoding, const char*> encoding_t_to_name_interpreter;

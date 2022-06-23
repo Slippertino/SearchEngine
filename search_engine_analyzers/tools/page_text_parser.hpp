@@ -9,8 +9,7 @@
 #include "en_de_coder.hpp"
 #include "../stop_words/stop_words_container.hpp"
 
-class page_text_parser
-{
+class page_text_parser {
 private:
 	static const std::unordered_map<se_language, std::shared_ptr<stop_words_container>> language_stop_words_interpreter;
 	static const std::unordered_map<se_language, std::vector<std::pair<char, char>>> language_t_alf_ranges_interpreter;

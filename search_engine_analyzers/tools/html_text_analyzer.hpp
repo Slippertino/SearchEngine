@@ -13,8 +13,7 @@
 #include "../html_text_automatons/text_automaton.hpp"
 #include "text_property_types/string_enc.hpp"
 
-class html_text_analyzer
-{
+class html_text_analyzer {
 private:
     friend class language_automaton;
     friend class encoding_automaton;
@@ -24,8 +23,7 @@ private:
 public:
     using ratio_type = double;
 
-    struct page_info
-    {
+    struct page_info {
         std::string url;
         std::string prefix;
         std::string content;

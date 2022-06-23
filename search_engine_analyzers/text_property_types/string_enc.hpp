@@ -4,8 +4,7 @@
 #include <string>
 #include <text_property_types/se_encoding.hpp>
 
-struct string_enc
-{
+struct string_enc {
 	std::string str;
 	se_encoding enc;
 

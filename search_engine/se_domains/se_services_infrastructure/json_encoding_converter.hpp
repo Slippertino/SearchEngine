@@ -8,16 +8,14 @@
 #include <text_property_types/string_enc.hpp>
 
 template<typename T>
-class json_encoding_converter
-{
+class json_encoding_converter {
 public:
 	void encode(std::reference_wrapper<T> obj) {}
 	void decode(std::reference_wrapper<T> obj) {}
 };
 
 template<typename T>
-class json_encoding_converter<std::reference_wrapper<T>>
-{
+class json_encoding_converter<std::reference_wrapper<T>> {
 public:
 	void encode(std::reference_wrapper<T> obj) {
 		json_encoding_converter<T>().encode(obj);
@@ -29,8 +27,7 @@ public:
 };
 
 template<>
-class json_encoding_converter<string_enc>
-{
+class json_encoding_converter<string_enc> {
 private:
 	void encode_base(std::string& s, se_encoding from, se_encoding to) {
 		en_de_coder encoder(to), decoder(from);
@@ -49,8 +46,7 @@ public:
 };
 
 template<typename T>
-class json_encoding_converter<std::unordered_set<T>>
-{
+class json_encoding_converter<std::unordered_set<T>> {
 private:
 	void exec_encode_wrapper(std::reference_wrapper<std::unordered_set<T>> obj, 
 							 const std::function<void(T&)>& op) {
@@ -84,8 +80,7 @@ public:
 };
 
 template<typename T>
-class json_encoding_converter<std::vector<T>>
-{
+class json_encoding_converter<std::vector<T>> {
 private:
 	void exec_encode_wrapper(std::reference_wrapper<std::vector<T>> obj,
 							 const std::function<void(T&)>& op) {
@@ -108,8 +103,7 @@ public:
 };
 
 template<typename T1, typename T2>
-class json_encoding_converter<std::pair<T1, T2>>
-{
+class json_encoding_converter<std::pair<T1, T2>> {
 public:
 	void encode(std::reference_wrapper<std::pair<T1, T2>> obj) {
 		json_encoding_converter<T1>().encode(std::ref(obj.get().first));
@@ -123,8 +117,7 @@ public:
 };
 
 template<typename T1, typename T2, typename T3>
-class json_encoding_converter<std::tuple<T1, T2, T3>>
-{
+class json_encoding_converter<std::tuple<T1, T2, T3>> {
 public:
 	void encode(std::reference_wrapper<std::tuple<T1, T2, T3>> obj) {
 		json_encoding_converter<T1>().encode(std::ref(std::get<0>(obj.get())));

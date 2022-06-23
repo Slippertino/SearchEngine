@@ -7,8 +7,7 @@
 #include <windows.h>
 #include "../text_property_types/se_encoding.hpp"
 
-class en_de_coder
-{
+class en_de_coder {
 private:
 	static const se_encoding internal_encoding;
 	static const std::map<se_encoding, std::function<void(const en_de_coder*, std::string&)>> encoding_methods;

@@ -7,8 +7,7 @@
 
 namespace fs = std::filesystem;
 
-class se_logger_file
-{
+class se_logger_file {
 private:
 	std::ofstream file;
 	std::mutex record_locker;

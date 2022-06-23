@@ -11,8 +11,7 @@
 
 template<typename service_t>
 class se_service : public se_services_communication,
-				   public se_component
-{
+				   public se_component {
 #define SE_SERVICE(service_name) \
 private: \
 	friend class builder<service_name>; \

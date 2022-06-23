@@ -3,15 +3,13 @@
 #include "se_text_property.hpp"
 #include <nlohmann/json.hpp>
 
-enum class encoding_t
-{
+enum class encoding_t {
 	UTF_8,
 	ANSI,
 	UNKNOWN
 };
 
-class se_encoding : public se_text_property<encoding_t>
-{
+class se_encoding : public se_text_property<encoding_t> {
 public:
 	se_encoding() = default;
 	se_encoding(encoding_t type) : se_text_property(type)

@@ -5,9 +5,8 @@
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include "se_db_queries.h"
 
-template<typename q_builer>
-class se_db_responder
-{
+template<typename q_builder>
+class se_db_responder {
 protected:
 	#define CONNECT(config) sql::mysql::get_mysql_driver_instance()->connect(config.get_db_url(), config.get_db_user_name(), config.get_db_password())
 
@@ -19,7 +18,7 @@ protected:
 
 protected:
 	thread_safe_queue<std::shared_ptr<sql::Connection>> connections;
-	std::shared_ptr<se_db_queries> queries_builder = std::make_shared<q_builer>();
+	std::shared_ptr<se_db_queries> queries_builder = std::make_shared<q_builder>();
 
 protected:
 	void get_components(const msg_request& msg,

@@ -3,8 +3,7 @@
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "se_logger.h"
 
-class se_loggers_storage
-{
+class se_loggers_storage {
 private:
 	static std::shared_ptr<se_loggers_storage> storage_instance;
 

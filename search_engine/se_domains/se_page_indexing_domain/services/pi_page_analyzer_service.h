@@ -6,11 +6,10 @@
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../../se_service.hpp"
-#include "../messages.h"
+#include "../pi_messages.h"
 #include "../../se_services_infrastructure/se_services_communication.hpp"
 
-class pi_page_analyzer_service : public se_service<pi_page_analyzer_service>
-{
+class pi_page_analyzer_service : public se_service<pi_page_analyzer_service> {
 	SE_SERVICE(pi_page_analyzer_service)
 
 private:
@@ -156,8 +155,7 @@ public:
 const size_t pi_page_analyzer_service::max_rejected_requests = 50;
 
 template<>
-class builder<pi_page_analyzer_service> : public abstract_service_builder<pi_page_analyzer_service>
-{
+class builder<pi_page_analyzer_service> : public abstract_service_builder<pi_page_analyzer_service> {
 protected:
 	void add_subscriptions(const service_ptr& service) const override {
 		service->router->subscribe<url_to_analyze_request>(service);

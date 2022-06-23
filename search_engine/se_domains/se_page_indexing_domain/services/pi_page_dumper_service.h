@@ -6,7 +6,7 @@
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include <semaphore.hpp>
 #include "../../se_service.hpp"
-#include "../messages.h"
+#include "../pi_messages.h"
 #include "../../se_services_infrastructure/se_services_communication.hpp"
 #include <thread_pool.hpp>
 

@@ -9,8 +9,7 @@
 namespace fs = std::filesystem;
 
 template<typename domain_t, size_t services_count>
-class se_domain : public se_component
-{
+class se_domain : public se_component {
 #define SE_DOMAIN(domain_name) friend class builder<domain_name>;
 #define ALIAS s
 #define EXECUTE_FOR_SERVICES(expression) \

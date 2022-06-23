@@ -7,8 +7,7 @@
 
 namespace fs = std::filesystem;
 
-class se_logger
-{
+class se_logger {
 private:
 	std::unordered_map<size_t, std::shared_ptr<se_logger_file>> code_file_interpreter;
 	fs::path root;

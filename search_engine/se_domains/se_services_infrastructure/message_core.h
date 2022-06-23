@@ -7,14 +7,12 @@
 #include <tools/en_de_coder.hpp>
 #include "json_encoding_converter.hpp"
 
-enum class runtime_status
-{
+enum class runtime_status {
 	FAIL,
 	SUCCESS
 };
 
-enum class message_type
-{
+enum class message_type {
 	REQUEST,
 	RESPONSE
 };
@@ -68,8 +66,7 @@ enum class message_type
 		return js.dump(); \
 	}
 
-struct context
-{
+struct context {
 	ENCODE_DATA_METHODS 
 	DECODE_DATA_METHODS 
 
@@ -79,8 +76,7 @@ struct context
 };
 
 
-struct response_status : context
-{
+struct response_status : context {
 	runtime_status status = runtime_status::FAIL;
 	string_enc message = {"", encoding_t::UNKNOWN};
 
@@ -98,8 +94,7 @@ struct response_status : context
 };
 
 template<message_type type>
-struct message
-{
+struct message {
 	std::string id;
 	std::shared_ptr<context> body;
 };

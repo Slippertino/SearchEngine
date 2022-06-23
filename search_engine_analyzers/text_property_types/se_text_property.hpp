@@ -6,8 +6,7 @@
 #include <regex>
 
 template<typename TTextProperty>
-class se_text_property
-{
+class se_text_property {
 protected:
 	static const std::unordered_map<std::string, TTextProperty> pattern_to_value_interpreter;
 	static const std::unordered_map<TTextProperty, std::string> value_to_name_interpreter;

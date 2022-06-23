@@ -6,8 +6,7 @@
 #include "message_core.h"
 #include "se_router.hpp"
 
-class se_services_communication
-{
+class se_services_communication {
 protected:
 	using requests_container = thread_safe_queue<std::pair<std::string, msg_request>>;
 	using responses_container = thread_safe_unordered_map<decltype(msg_response::id), msg_response>;

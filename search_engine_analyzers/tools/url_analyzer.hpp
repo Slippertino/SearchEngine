@@ -4,8 +4,7 @@
 #include <regex>
 #include <unordered_set>
 
-class url_analyzer
-{
+class url_analyzer {
 private:
 	static const std::vector<std::regex> forbidden_patterns;
 

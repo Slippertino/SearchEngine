@@ -6,8 +6,7 @@
 #include "services/pi_db_responder_service.h"
 #include "services/pi_page_indexing_service.h"
 
-class pi_domain : public se_domain<pi_domain, 4>
-{ 
+class pi_domain : public se_domain<pi_domain, 4> { 
 	SE_DOMAIN(pi_domain) 
 
 public:
@@ -22,8 +21,7 @@ public:
 };
 
 template<>
-class builder<pi_domain> : public abstract_domain_builder<pi_domain>
-{
+class builder<pi_domain> : public abstract_domain_builder<pi_domain> {
 private:
 	template<typename service_t>
 	void add_service(const domain_ptr& domain, size_t id) const {

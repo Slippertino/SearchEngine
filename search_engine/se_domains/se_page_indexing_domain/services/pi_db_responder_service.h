@@ -4,19 +4,17 @@
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../../se_service.hpp"
-#include "../messages.h"
+#include "../pi_messages.h"
 #include "../../se_services_infrastructure/se_services_communication.hpp"
 #include "../pi_queries.h"
 #include "../../se_db_responder.h"
 
 class pi_db_responder_service : public se_service<pi_db_responder_service>,
-								public se_db_responder<pi_queries>
-{
+								public se_db_responder<pi_queries> {
 	SE_SERVICE(pi_db_responder_service)
 
 private:
-	void init_database_request_responder(msg_request msg)
-	{
+	void init_database_request_responder(msg_request msg) {
 		responder_components comps;
 		get_components(msg, typeid(init_database_request).name(), comps);
 
@@ -41,8 +39,7 @@ private:
 		connections.add(comps.connection);
 	}
 
-	void sites_list_recording_request_responder(msg_request msg)
-	{
+	void sites_list_recording_request_responder(msg_request msg) {
 		responder_components comps;
 		get_components(msg, typeid(site_recording_request).name(), comps);
 
@@ -71,8 +68,7 @@ private:
 		connections.add(comps.connection);
 	}
 
-	void record_page_info_request_responder(msg_request msg)
-	{
+	void record_page_info_request_responder(msg_request msg) {
 		responder_components comps;
 		get_components(msg, typeid(record_page_info_request).name(), comps);
 
@@ -101,8 +97,7 @@ private:
 		connections.add(comps.connection);
 	}
 
-	void is_unique_page_url_request_responder(msg_request msg)
-	{
+	void is_unique_page_url_request_responder(msg_request msg) {
 		responder_components comps;
 		get_components(msg, typeid(is_unique_page_url_request).name(), comps);
 
@@ -284,8 +279,7 @@ public:
 };
 
 template<>
-class builder<pi_db_responder_service> : public abstract_service_builder<pi_db_responder_service>
-{
+class builder<pi_db_responder_service> : public abstract_service_builder<pi_db_responder_service> {
 protected:
 	void add_subscriptions(const service_ptr& service) const override {
 		service->router->subscribe<init_database_request>(service);

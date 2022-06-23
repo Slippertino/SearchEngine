@@ -5,8 +5,7 @@
 
 #undef max()
 
-class message_id_generator
-{
+class message_id_generator {
 private:
 	std::mutex mutex;
 	size_t unique_id = 0;

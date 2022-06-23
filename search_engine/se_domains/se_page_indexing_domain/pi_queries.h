@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../se_db_queries.h"
-#include "messages.h"
+#include "pi_messages.h"
 
 class pi_queries : public se_db_queries
 {

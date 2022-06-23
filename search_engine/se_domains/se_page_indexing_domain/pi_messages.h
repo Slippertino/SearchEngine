@@ -5,8 +5,7 @@
 #include <text_property_types/se_language.hpp>
 #include "../se_services_infrastructure/message_core.h"
 
-struct site_recording_request : context
-{
+struct site_recording_request : context {
 	string_enc site;
 
 	SE_CONTEXT(
@@ -20,8 +19,7 @@ struct site_recording_request : context
 	)
 };
 
-struct site_recording_response : context
-{
+struct site_recording_response : context {
 	response_status status;
 
 	SE_CONTEXT(
@@ -35,8 +33,7 @@ struct site_recording_response : context
 	)
 };
 
-struct url_to_analyze_request : context
-{
+struct url_to_analyze_request : context {
 	string_enc prefix;
 	string_enc url;
 
@@ -53,8 +50,7 @@ struct url_to_analyze_request : context
 	)
 };
 
-struct url_to_analyze_response : context
-{
+struct url_to_analyze_response : context {
 	se_encoding page_encoding;
 	string_enc content;
 	long status_code;
@@ -81,8 +77,7 @@ struct url_to_analyze_response : context
 	)
 };
 
-struct record_page_info_request : context
-{
+struct record_page_info_request : context {
 	string_enc path;
 	string_enc content;
 	long code;
@@ -101,8 +96,7 @@ struct record_page_info_request : context
 	)
 };
 
-struct record_page_info_response : context
-{
+struct record_page_info_response : context {
 	response_status status;
 
 	SE_CONTEXT(
@@ -116,8 +110,7 @@ struct record_page_info_response : context
 	)
 };
 
-struct is_unique_page_url_request : context
-{
+struct is_unique_page_url_request : context {
 	string_enc url;
 
 	SE_CONTEXT(
@@ -131,8 +124,7 @@ struct is_unique_page_url_request : context
 	)
 };
 
-struct is_unique_page_url_response : context
-{
+struct is_unique_page_url_response : context {
 	bool answer;
 	response_status status;
 
@@ -149,8 +141,7 @@ struct is_unique_page_url_response : context
 	)
 };
 
-struct init_database_request : context
-{
+struct init_database_request : context {
 	string_enc database_name;
 
 	SE_CONTEXT(
@@ -164,8 +155,7 @@ struct init_database_request : context
 	)
 };
 
-struct init_database_response : context
-{
+struct init_database_response : context {
 	response_status status;
 
 	SE_CONTEXT(
@@ -179,8 +169,7 @@ struct init_database_response : context
 	)
 };
 
-struct page_indexing_request : context
-{
+struct page_indexing_request : context {
 	string_enc url;
 	string_enc prefix;
 
@@ -197,8 +186,7 @@ struct page_indexing_request : context
 	)
 };
 
-struct page_indexing_response : context
-{
+struct page_indexing_response : context {
 	response_status status;
 
 	SE_CONTEXT(
@@ -212,8 +200,7 @@ struct page_indexing_response : context
 	)
 };
 
-struct page_info_request : context
-{
+struct page_info_request : context {
 	string_enc url;
 
 	SE_CONTEXT(
@@ -227,8 +214,7 @@ struct page_info_request : context
 	)
 };
 
-struct page_info_response : context
-{
+struct page_info_response : context {
 	se_encoding page_encoding;
 	std::vector<std::tuple<std::string, se_language, html_text_analyzer::ratio_type>> text_excerpts;
 	response_status status;
@@ -248,8 +234,7 @@ struct page_info_response : context
 	)
 };
 
-struct page_and_site_id_request : context
-{
+struct page_and_site_id_request : context {
 	string_enc page_url;
 	string_enc site_url;
 
@@ -266,8 +251,7 @@ struct page_and_site_id_request : context
 	)
 };
 
-struct page_and_site_id_response : context
-{
+struct page_and_site_id_response : context {
 	size_t page_id;
 	size_t site_id;
 	response_status status;
@@ -287,8 +271,7 @@ struct page_and_site_id_response : context
 	)
 };
 
-struct record_word_info_request : context
-{
+struct record_word_info_request : context {
 	size_t site_id;
 	std::vector<std::pair<string_enc, string_enc>> words_params;
 
@@ -305,8 +288,7 @@ struct record_word_info_request : context
 	)
 };
 
-struct record_word_info_response : context
-{
+struct record_word_info_response : context {
 	std::vector<size_t> words_id;
 	response_status status;
 
@@ -323,8 +305,7 @@ struct record_word_info_response : context
 	)
 };
 
-struct record_word_to_index_request : context
-{
+struct record_word_to_index_request : context {
 	std::vector<std::tuple<size_t, size_t, html_text_analyzer::ratio_type>> words_index_params;
 
 	SE_CONTEXT(
@@ -338,8 +319,7 @@ struct record_word_to_index_request : context
 	)
 };
 
-struct record_word_to_index_response : context
-{
+struct record_word_to_index_response : context {
 	response_status status;
 
 	SE_CONTEXT(

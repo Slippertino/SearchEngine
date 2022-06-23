@@ -10,8 +10,7 @@
 
 class se_services_communication;
 
-class se_router
-{
+class se_router {
 private:
 	thread_safe_unordered_map<std::string, std::vector<std::weak_ptr<se_services_communication>>> routing_table;
 	message_id_generator id_generator;

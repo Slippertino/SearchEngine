@@ -7,7 +7,7 @@
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../../se_service.hpp"
-#include "../messages.h"
+#include "../pi_messages.h"
 
 class pi_page_indexing_service : public se_service<pi_page_indexing_service> {
 	SE_SERVICE(pi_page_indexing_service)
