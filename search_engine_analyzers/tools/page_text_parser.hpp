@@ -5,7 +5,6 @@
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
-#include "stemmer.hpp"
 #include "en_de_coder.hpp"
 #include "../stop_words/stop_words_container.hpp"
 
@@ -18,7 +17,6 @@ private:
 private:
 	std::shared_ptr<stop_words_container> stop_words;
 	en_de_coder coder;
-	stemmer stem_obj;
 	std::vector<std::pair<char, char>> alf_ranges;
 
 private:
@@ -71,7 +69,6 @@ public:
 	page_text_parser() = delete;
 	page_text_parser(se_language lang, se_encoding enc) :
 		coder(enc),
-		stem_obj(lang, enc),
 		alf_ranges(language_t_alf_ranges_interpreter.at(lang)),
 		stop_words(language_stop_words_interpreter.at(lang))
 	{ }
@@ -87,8 +84,6 @@ public:
 				auto word = get_word(text);
 				if (is_valid_word(word)) {
 					coder.encode(word);
-					word = stem_obj.get_stem(word);
-					coder.decode(word);
 					stemmed_words.push_back(word);
 				}
 			}

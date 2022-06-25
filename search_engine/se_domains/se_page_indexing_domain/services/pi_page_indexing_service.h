@@ -4,6 +4,7 @@
 #include <tools/page_text_parser.hpp>
 #include <text_property_types/se_encoding.hpp>
 #include <text_property_types/se_language.hpp>
+#include <tools/stemmer.hpp>
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../../se_service.hpp"
@@ -105,6 +106,13 @@ private:
 
 		page_text_parser parser(std::get<1>(excerpt), encoding);
 		parser.parse(std::get<0>(excerpt), words);
+
+		en_de_coder coder(encoding);
+		stemmer stmr(std::get<1>(excerpt), encoding);
+		for (auto& w : words) {
+			w = stmr.get_stem(w);
+			coder.decode(w);
+		}
 
 		for (auto& w : words) {
 			if (cont.find(w) == cont.end()) {
