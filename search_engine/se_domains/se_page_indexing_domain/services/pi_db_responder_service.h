@@ -250,6 +250,8 @@ private:
 
 protected:
 	void clear() override {
+		se_service<pi_db_responder_service>::clear();
+
 		while (!connections.empty()) {
 			std::shared_ptr<sql::Connection> con;
 			connections.wait_and_erase(con);

@@ -134,6 +134,7 @@ private:
 
 protected:
 	void clear() override {
+		se_service<pi_page_analyzer_service>::clear();
 		info_storage.clear();
 		source      .clear();
 	}

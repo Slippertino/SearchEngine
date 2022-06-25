@@ -47,6 +47,7 @@ public:
 		add_subscriptions(res);
 		add_power_distribution(res);
 		add_request_responders(res);
+		add_unused_response_type_names(res);
 		configure_logger(res);
 
 		return res;

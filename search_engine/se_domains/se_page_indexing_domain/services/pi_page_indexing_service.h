@@ -182,6 +182,7 @@ private:
 
 protected:
 	void clear() override {
+		se_service<pi_page_indexing_service>::clear();
 		source_for_collect.clear();
 		source_for_record.clear();
 	}
@@ -224,6 +225,6 @@ protected:
 	}
 
 	void add_unused_response_type_names(const service_ptr& service) const override {
-		service->unused_response_type_names.insert(typeid(record_word_to_index_response).name(), nullptr);
+		service->unused_response_type_names.insert(typeid(record_word_to_index_request).name(), nullptr);
 	}
 };

@@ -172,6 +172,7 @@ private:
 
 protected:
 	void clear() override {
+		se_service<pi_page_dumper_service>::clear();
 		keys     .clear();
 		source   .clear();
 		semaphore.clear();
@@ -220,6 +221,6 @@ protected:
 	}
 
 	void add_unused_response_type_names(const service_ptr& service) const override {
-		service->unused_response_type_names.insert(typeid(page_indexing_response).name(), nullptr);
+		service->unused_response_type_names.insert(typeid(page_indexing_request).name(), nullptr);
 	}
 };

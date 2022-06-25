@@ -186,7 +186,7 @@ protected:
 
 	void disturbe_processes(service_t* service, size_t threads_count) {
 		stop_flag = false;
-		pool = thread_pool(threads_count);
+		pool = thread_pool(threads_count + 1);
 
 		size_t total(0);
 		std::for_each(power_distribution.begin(),
@@ -200,14 +200,18 @@ protected:
 				throw std::exception("lack of threads");
 
 			for (auto i = 0; i < cur_threads; ++i) {
-				auto id = pool.add_task(process.first, service);
+				pool.add_task(process.first, service);
 			}
 		}
+
+		pool.add_task(&service_t::responses_handler, service);
+	}
+
+	virtual void clear() {
+		responses_id.clear();
 	}
 
 	virtual std::string get_component_name() const override = 0;
-
-	virtual void clear() = 0;
 
 public:
 	se_service() = delete;
