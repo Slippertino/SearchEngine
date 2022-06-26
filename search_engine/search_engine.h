@@ -1,6 +1,7 @@
 #pragma once
 
 #include "se_component.h"
+#include "se_domains/se_page_indexing_domain/pi_config.hpp"
 #include "builders/builder.hpp"
 #include "se_domains/se_page_indexing_domain/pi_domain.h"
 #include "se_logger/se_loggers_storage.h"
@@ -53,10 +54,10 @@ public:
 		}
 	}
 	
-	void setup(const configuration& config) override {
+	void setup(const std::shared_ptr<se_config>& config) override {
 		try {
 			page_indexing_domain->setup(config);
-			SE_LOG("Engine has been setup by " << config.get_dump() << " !\n");
+			SE_LOG("Engine has been setup by " << config->get_dump() << " !\n");
 		}
 		catch (const std::exception& ex) {
 			SE_LOG("Engine error trying to be setup! " << ex.what() << "\n");

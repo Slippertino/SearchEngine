@@ -3,39 +3,21 @@
 #include <functional>
 #include <thread_pool.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
-#include "../configuration.h"
+#include "../se_config.hpp"
 #include "../builders/builder.hpp"
 #include "se_services_infrastructure/se_services_communication.hpp"
 #include "../se_component.h"
 #include "../se_logger_api.h"
 
-template<typename service_t>
+template<typename service_t, typename config_t>
 class se_service : public se_services_communication,
 				   public se_component {
 #define SE_SERVICE(service_name) \
 private: \
 	friend class builder<service_name>; \
-	void requests_handler() { \
-		while (!stop_flag) { \
-			std::pair<std::string, msg_request> msg_info; \
-			pool.set_inactive(std::this_thread::get_id()); \
-			GET_REQUEST(msg_info) \
-			if (stop_flag) \
-				continue; \
-			pool.set_active(std::this_thread::get_id()); \
-			request_responder responder; \
-			if (responders.try_get(msg_info.first, responder)) \
-				responder(this, msg_info.second); \
-		} \
-	} \
-public: \
-	void run(size_t threads_count) override { \
-		try { \
-			disturbe_processes(this, threads_count); \
-			SE_LOG("Service was successfully run with " << threads_count << " flows!\n"); \
-		} catch (const std::exception& ex) { \
-			SE_LOG("Error while trying to run service with " << threads_count << " flows! Message : " << ex.what() << "\n"); \
-		} \
+protected: \
+	service_name* get_object() const { \
+		return const_cast<service_name*>(this); \
 	} \
 
 #define EXECUTE_CONTROLLED_WAITING(var_name, alias, expression) \
@@ -54,6 +36,7 @@ public: \
 	make_response<msg_name##_response> params; 
 
 protected:
+	using config_type = typename config_t;
 	using request_responder = std::function<void(service_t*, msg_request)>;
 	using power_consumer = std::function<void(service_t*)>;
 	using responders_container = thread_safe_unordered_map<std::string, request_responder>;
@@ -79,6 +62,24 @@ protected:
 			res = func(value);
 		} while (!res && !stop_flag);
 	}
+
+	void requests_handler() {
+		while (!stop_flag) {
+			std::pair<std::string, msg_request> msg_info;
+
+			pool.set_inactive(std::this_thread::get_id()); 
+			GET_REQUEST(msg_info) 
+			pool.set_active(std::this_thread::get_id()); 
+
+			if (stop_flag) {
+				continue;
+			}
+
+			request_responder responder; 
+			if (responders.try_get(msg_info.first, responder)) 
+				responder(get_object(), msg_info.second); 
+		} 
+	} 
 
 	void responses_handler() {
 		while (!stop_flag) {
@@ -156,8 +157,8 @@ protected:
 
 	template<typename request_t, typename response_t, typename... Args>
 	void make_request_with_response(response_t& body, Args&&... args) {
-		auto id = se_service<service_t>::make_request<request_t>(std::forward<Args>(args)...);
-		se_service<service_t>::get_response<response_t>(id, body);
+		auto id = se_service<service_t, config_t>::make_request<request_t>(std::forward<Args>(args)...);
+		se_service<service_t, config_t>::get_response<response_t>(id, body);
 	}
 
 	template<typename T>
@@ -208,9 +209,12 @@ protected:
 	}
 
 	virtual void clear() {
+		se_services_communication::clear();
 		responses_id.clear();
 	}
 
+	virtual service_t* get_object() const = 0;
+	virtual void setup_base(config_type* config) = 0;
 	virtual std::string get_component_name() const override = 0;
 
 public:
@@ -233,6 +237,15 @@ public:
 		return st;
 	}
 
+	void run(size_t threads_count) override {
+		try {
+			disturbe_processes(get_object(), threads_count); 
+			SE_LOG("Service was successfully run with " << threads_count << " flows!\n"); 
+		} catch (const std::exception& ex) {
+			SE_LOG("Error while trying to run service with " << threads_count << " flows! Message : " << ex.what() << "\n"); 
+		} 
+	} 
+
 	void stop() override {
 		try {
 			stop_flag = true;
@@ -244,18 +257,28 @@ public:
 		}
 	}
 
+	void setup(const std::shared_ptr<se_config>& config) override {
+		try {
+			config_type* conf = dynamic_cast<config_type*>(config.get());
+			if (conf) {
+				setup_base(conf);
+				SE_LOG("Successful setup!\n");
+			} else {
+				throw std::exception("Unsuitable config for setup!\n");
+			}
+		} catch (const std::exception& ex) {
+			SE_LOG("Unsuccessful setup! " << ex.what() << "\n");
+		}
+	}
+
 	void reset() override {
 		try {
-			se_services_communication::clear(); 
-			this->clear(); 
+			clear();
 			SE_LOG("Service was successfully reset!\n"); 
 		} catch (const std::exception& ex) {
 			SE_LOG("Error while trying to reset! " << "Message : " << ex.what() << "\n"); 
 		} 
 	} 
-
-	virtual void run(size_t threads_count) override = 0;
-	virtual void setup(const configuration& config) override = 0;
 
 	virtual ~se_service() = default;
 };

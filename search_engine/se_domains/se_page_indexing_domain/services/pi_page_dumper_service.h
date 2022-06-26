@@ -9,9 +9,10 @@
 #include "../pi_messages.h"
 #include "../../se_services_infrastructure/se_services_communication.hpp"
 #include <thread_pool.hpp>
+#include "../pi_config.hpp"
 
 
-class pi_page_dumper_service : public se_service<pi_page_dumper_service> {
+class pi_page_dumper_service : public se_service<pi_page_dumper_service, pi_config> {
 	SE_SERVICE(pi_page_dumper_service)
 
 	#define CHECK_FOR_STOP(link_prefix) if (check_for_stop(link_prefix)) continue;
@@ -164,15 +165,15 @@ private:
 		semaphore.disconnect_thread();
 	}
 
-	void load_urls(std::vector<std::string>& urls) {
-		for (auto& url : urls) {
+protected:
+	void setup_base(pi_config* config) override {
+		for (auto& url : config->get_sources()) {
 			add_to_buffer({ url, url });
 		}
 	}
 
-protected:
 	void clear() override {
-		se_service<pi_page_dumper_service>::clear();
+		se_service<pi_page_dumper_service, pi_config>::clear();
 		keys     .clear();
 		source   .clear();
 		semaphore.clear();
@@ -187,16 +188,6 @@ public:
 
 	std::string get_component_name() const override {
 		return std::string("page_dumper_service");
-	}
-
-	void setup(const configuration& config) override {
-		try {
-			load_urls(config.get_sources());
-			SE_LOG("Successful setup!\n");
-		} catch (const std::exception& ex) {
-			SE_LOG("Unsuccessful setup! " << ex.what() << "\n");
-			throw ex;
-		}
 	}
 };
 

@@ -5,8 +5,9 @@
 #include "services/pi_page_analyzer_service.h"
 #include "services/pi_db_responder_service.h"
 #include "services/pi_page_indexing_service.h"
+#include "pi_config.hpp"
 
-class pi_domain : public se_domain<pi_domain, 4> { 
+class pi_domain : public se_domain<pi_domain, pi_config, 4> {
 	SE_DOMAIN(pi_domain) 
 
 public:

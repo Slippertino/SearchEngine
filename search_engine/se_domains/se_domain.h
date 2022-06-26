@@ -2,13 +2,13 @@
 #include <filesystem>
 #include "../se_component.h"
 #include "se_services_infrastructure/se_router.hpp"
-#include "../configuration.h"
 #include "../builders/builder.hpp"
 #include "../se_logger_api.h"
+#include "../se_config.hpp"
 
 namespace fs = std::filesystem;
 
-template<typename domain_t, size_t services_count>
+template<typename domain_t, typename config_t, size_t services_count>
 class se_domain : public se_component {
 #define SE_DOMAIN(domain_name) friend class builder<domain_name>;
 #define ALIAS s
@@ -22,6 +22,8 @@ protected:
 		SETUP = 1,
 		RUN   = 2
 	};
+
+	using config_type = typename config_t;
 
 protected:
 	std::array<std::pair<std::shared_ptr<se_component>, size_t>, services_count> services;
@@ -122,10 +124,11 @@ public:
 		}
 	}
 
-	void setup(const configuration& config) override {
+	void setup(const std::shared_ptr<se_config>& config) override {
 		try {
 			std::lock_guard<std::mutex> locker(using_api_limiter);
-			if (!is_flag_set(status_flags::SETUP)) {
+			if (!is_flag_set(status_flags::SETUP) 
+				&& dynamic_cast<config_type*>(config.get())) {
 				EXECUTE_FOR_SERVICES(ALIAS.first->setup(config))
 				set_flag(status_flags::SETUP);
 				SE_LOG("Domain was successfully setup!\n");

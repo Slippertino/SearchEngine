@@ -8,8 +8,9 @@
 #include "../../se_services_infrastructure/se_services_communication.hpp"
 #include "../pi_queries.h"
 #include "../../se_db_responder.h"
+#include "../pi_config.hpp"
 
-class pi_db_responder_service : public se_service<pi_db_responder_service>,
+class pi_db_responder_service : public se_service<pi_db_responder_service, pi_config>,
 								public se_db_responder<pi_queries> {
 	SE_SERVICE(pi_db_responder_service)
 
@@ -222,11 +223,12 @@ private:
 		connections.add(comps.connection);
 	}
 
-	void initialize(const configuration& config) {
+protected:
+	void setup_base(pi_config* config) override {
 		std::thread init_thread(&pi_db_responder_service::requests_handler, this);
 		init_thread.detach();
 
-		auto db_name = config.get_db_name();
+		auto db_name = config->get_db_name();
 
 		for (auto i = 0; i < pool.size(); ++i) {
 			try {
@@ -242,15 +244,14 @@ private:
 
 		MAKE_REQUEST_WITH_RESPONSE(resp, init_database, (
 			resp,
-			string_enc{db_name, encoding_t::UTF_8}
+			string_enc{ db_name, encoding_t::UTF_8 }
 		))
 
 		SE_LOG("Init setup: " << resp.to_string() << "\n");
 	}
 
-protected:
 	void clear() override {
-		se_service<pi_db_responder_service>::clear();
+		se_service<pi_db_responder_service, pi_config>::clear();
 
 		while (!connections.empty()) {
 			std::shared_ptr<sql::Connection> con;
@@ -267,16 +268,6 @@ public:
 
 	std::string get_component_name() const override {
 		return std::string("db_responder_service");
-	}
-
-	void setup(const configuration& config) override {
-		try {
-			initialize(config);
-			SE_LOG("Successful setup!\n");
-		} catch (const std::exception& ex) {
-			SE_LOG("Unsuccessful setup! " << ex.what() << "\n");
-			throw ex;
-		}
 	}
 };
 

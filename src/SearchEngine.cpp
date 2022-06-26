@@ -9,7 +9,6 @@
 #include "semaphore.hpp"
 #include <nlohmann/json.hpp>
 #include "builders/builder.hpp"
-#include "configuration.h"
 #include <array>
 #include <queue>
 #include <regex>
@@ -17,8 +16,7 @@
 #include "se_domains/se_services_infrastructure/json_encoding_converter.hpp"
 #include "search_engine.h"
 
-
-const char* configure_path = "..\\..\\..\\configuration.json";
+const std::filesystem::path configure_path = std::filesystem::path(R"(..\\..\\..\\configuration.json)");
 
 class polygon
 {
@@ -227,13 +225,12 @@ public:
     }
 };*/
 
-
 int main(int argc, char** argv) { 
     setlocale(LC_ALL, "ru");
     std::srand(std::time(nullptr));
 
-    configuration config;
-    config.load(configure_path);
+    auto config = std::shared_ptr<se_config>(new pi_config());
+    config->load(configure_path);
 
     auto engine = builder<search_engine>().build();
     engine->setup(config);

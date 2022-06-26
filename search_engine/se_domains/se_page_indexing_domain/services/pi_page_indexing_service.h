@@ -9,8 +9,9 @@
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../../se_service.hpp"
 #include "../pi_messages.h"
+#include "../pi_config.hpp"
 
-class pi_page_indexing_service : public se_service<pi_page_indexing_service> {
+class pi_page_indexing_service : public se_service<pi_page_indexing_service, pi_config> {
 	SE_SERVICE(pi_page_indexing_service)
 
 	#define CHECK_FOR_STOP(cont, arg) if (stop_flag) { cont.add(std::move(arg)); continue; }
@@ -181,8 +182,10 @@ private:
 	}
 
 protected:
+	void setup_base(pi_config* config) override {}
+
 	void clear() override {
-		se_service<pi_page_indexing_service>::clear();
+		se_service<pi_page_indexing_service, pi_config>::clear();
 		source_for_collect.clear();
 		source_for_record.clear();
 	}
@@ -194,10 +197,6 @@ public:
 
 	std::string get_component_name() const override {
 		return std::string("page_indexing_service");
-	}
-
-	void setup(const configuration& config) override {
-		SE_LOG("Successful setup!\n");
 	}
 };
 

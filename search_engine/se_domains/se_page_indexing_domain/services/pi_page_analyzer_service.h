@@ -8,8 +8,9 @@
 #include "../../se_service.hpp"
 #include "../pi_messages.h"
 #include "../../se_services_infrastructure/se_services_communication.hpp"
+#include "../pi_config.hpp"
 
-class pi_page_analyzer_service : public se_service<pi_page_analyzer_service> {
+class pi_page_analyzer_service : public se_service<pi_page_analyzer_service, pi_config> {
 	SE_SERVICE(pi_page_analyzer_service)
 
 private:
@@ -133,8 +134,10 @@ private:
 	}
 
 protected:
+	void setup_base(pi_config* config) override {}
+
 	void clear() override {
-		se_service<pi_page_analyzer_service>::clear();
+		se_service<pi_page_analyzer_service, pi_config>::clear();
 		info_storage.clear();
 		source      .clear();
 	}
@@ -146,10 +149,6 @@ public:
 
 	std::string get_component_name() const override {
 		return std::string("page_analyzer_service");
-	}
-
-	void setup(const configuration& config) override {
-		SE_LOG("Successful setup!\n");
 	}
 };
 
