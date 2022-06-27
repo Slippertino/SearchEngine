@@ -273,7 +273,7 @@ public:
 
 	void reset() override {
 		try {
-			clear();
+			se_service<service_t, config_t>::clear();
 			SE_LOG("Service was successfully reset!\n"); 
 		} catch (const std::exception& ex) {
 			SE_LOG("Error while trying to reset! " << "Message : " << ex.what() << "\n"); 

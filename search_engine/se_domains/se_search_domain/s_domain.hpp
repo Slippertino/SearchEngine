@@ -1,8 +1,9 @@
 #include "../se_domain.h"
+#include "s_config.hpp"
 #include "services/s_search_service.hpp"
 #include "services/s_db_responder_service.hpp"
 
-class s_domain : public se_domain<s_domain, 2> {
+class s_domain : public se_domain<s_domain, s_config, 2> {
 	SE_DOMAIN(s_domain)
 
 public:

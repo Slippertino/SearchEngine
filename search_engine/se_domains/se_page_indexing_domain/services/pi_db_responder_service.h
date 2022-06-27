@@ -244,10 +244,10 @@ protected:
 
 		MAKE_REQUEST_WITH_RESPONSE(resp, init_database, (
 			resp,
-			string_enc{ db_name, encoding_t::UTF_8 }
+			string_enc{ db_name, encoding_t::ANSI }
 		))
 
-		SE_LOG("Init setup: " << resp.to_string() << "\n");
+		SE_LOG("Setup: " << resp.to_string() << "\n");
 	}
 
 	void clear() override {

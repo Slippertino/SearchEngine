@@ -1,22 +1,23 @@
 #pragma once
 
+#include <string>
 #include <map>
-#include <fstream>
-#include <vector>
 #include <nlohmann/json.hpp>
+#include <text_property_types/se_encoding.hpp>
 #include "../../se_config.hpp"
 
-class pi_config : public se_config {
+class s_config : public se_config {
 private:
 	std::map<std::string, std::string> database;
-	std::vector<std::string> sources;
+	std::string query;
+	se_encoding encoding;
 
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE(pi_config, database, sources)
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(s_config, database, query)
 
 public:
-	pi_config() = default;
-	pi_config(const pi_config& config) = default;
-	pi_config& operator=(const pi_config& config) = default;
+	s_config() = default;
+	s_config(const s_config& config) = default;
+	s_config& operator=(const s_config& config) = default;
 
 	void load(const fs::path& path) override {
 		std::ifstream istr(path);
@@ -27,9 +28,8 @@ public:
 			istr >> configure_file;
 
 			database = configure_file.at("database");
-
-			for (auto& cur : configure_file.at("sources"))
-				sources.push_back(cur);
+			query = configure_file.at("query");
+			encoding = se_encoding(std::string(configure_file.at("encoding")));
 		} catch (const std::exception& ex) {
 			throw se_config_exception();
 		}
@@ -43,7 +43,7 @@ public:
 		}
 	}
 
-	pi_config& set_db_url(const std::string& url) {
+	s_config& set_db_url(const std::string& url) {
 		database["url"] = url;
 		return *this;
 	}
@@ -56,7 +56,7 @@ public:
 		}
 	}
 
-	pi_config& set_db_user_name(const std::string& name) {
+	s_config& set_db_user_name(const std::string& name) {
 		database["user_name"] = name;
 		return *this;
 	}
@@ -69,7 +69,7 @@ public:
 		}
 	}
 
-	pi_config& set_db_password(const std::string& pass) {
+	s_config& set_db_password(const std::string& pass) {
 		database["password"] = pass;
 		return *this;
 	}
@@ -82,21 +82,34 @@ public:
 		}
 	}
 
-	pi_config& set_db_name(const std::string& name) {
+	s_config& set_db_name(const std::string& name) {
 		database["database_name"] = name;
 		return *this;
 	}
 
-	std::vector<std::string> get_sources() const {
+	std::string get_query() const {
 		try {
-			return sources;
+			return query;
 		} catch (...) {
 			throw se_config_exception();
 		}
 	}
 
-	pi_config& set_db_sources(std::initializer_list<std::string>&& list) {
-		sources = std::move(list);
+	s_config& set_query(const std::string& qr) {
+		query = qr;
+		return *this;
+	}
+
+	se_encoding get_encoding() const {
+		try {
+			return encoding;
+		} catch (...) {
+			throw se_config_exception();
+		}
+	}
+
+	s_config& set_encoding(se_encoding enc) {
+		encoding = enc;
 		return *this;
 	}
 

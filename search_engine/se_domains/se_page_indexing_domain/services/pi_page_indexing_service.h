@@ -1,7 +1,9 @@
 #pragma once
 
 #include <vector>
-#include <tools/page_text_parser.hpp>
+#include <list>
+#include <tools/text_parser.hpp>
+#include <tools/word_analyzer.hpp>
 #include <text_property_types/se_encoding.hpp>
 #include <text_property_types/se_language.hpp>
 #include <tools/stemmer.hpp>
@@ -103,10 +105,21 @@ private:
 	void parse_excerpt(se_encoding encoding,
 					   const word_params& excerpt, 
 					   words_container& cont) {
-		std::vector<std::string> words;
+		std::list<std::string> words;
 
-		page_text_parser parser(std::get<1>(excerpt), encoding);
-		parser.parse(std::get<0>(excerpt), words);
+		text_parser parser(encoding);
+		parser.parse<std::list<std::string>>(
+			std::get<0>(excerpt), 
+			words, 
+			[](std::list<std::string>& words, const std::string& word) { 
+				words.push_back(word); 
+			}
+		);
+
+		words.remove_if([&excerpt, &encoding](const std::string& s) {
+			word_analyzer analyzer(s, encoding);
+			return !analyzer.is_valid_word(std::get<1>(excerpt));
+		});
 
 		en_de_coder coder(encoding);
 		stemmer stmr(std::get<1>(excerpt), encoding);

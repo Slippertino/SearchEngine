@@ -15,6 +15,7 @@
 #include "../search_engine_analyzers/tools/en_de_coder.hpp"
 #include "se_domains/se_services_infrastructure/json_encoding_converter.hpp"
 #include "search_engine.h"
+#include "se_domains/se_search_domain/services/s_db_responder_service.hpp"
 
 const std::filesystem::path configure_path = std::filesystem::path(R"(..\\..\\..\\configuration.json)");
 
