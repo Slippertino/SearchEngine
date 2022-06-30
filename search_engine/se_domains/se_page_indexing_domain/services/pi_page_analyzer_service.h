@@ -2,7 +2,6 @@
 
 #include <cpr/cpr.h>
 #include <tools/html_text_analyzer.hpp>
-#include <tools/en_de_coder.hpp>
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../../se_service.hpp"
@@ -113,15 +112,15 @@ private:
 
 				res.status_code = resp_info.status_code;
 
-				html_text_analyzer analyzer(resp_info.text);
+				html_text_analyzer analyzer(string_enc{ resp_info.text, encoding_t::UTF_8 });
 				analyzer.run_parse(res);
 
 				status.status = runtime_status::SUCCESS;
-				status.message = { "Successful analysis of the page was carried out", encoding_t::ANSI };
+				status.message = { "Successful analysis of the page was carried out", DEFAULT_ENCODING };
 			}
 			catch (const std::exception& ex) {
 				status.status = runtime_status::FAIL;
-				status.message = { ex.what(), encoding_t::ANSI };
+				status.message = { ex.what(), DEFAULT_ENCODING };
 			}
 
 			SE_LOG("Url : " << res.url <<

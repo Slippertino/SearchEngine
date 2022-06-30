@@ -3,19 +3,19 @@
 #include <string>
 #include <unordered_map>
 #include "../libs/libstemmer/include/libstemmer.h"
-#include "en_de_coder.hpp"
+#include "se_encoder.hpp"
 #include "../text_property_types/se_encoding.hpp"
 #include "../text_property_types/se_language.hpp"
 
 class stemmer {
 private:
+	static const se_encoding internal_enc;
 	static const std::unordered_map<se_language, const char*> language_t_to_name_interpreter;
 	static const std::unordered_map<se_encoding, const char*> encoding_t_to_name_interpreter;
 
 private:
 	sb_stemmer* stem_obj;
-	en_de_coder external_coder;
-	en_de_coder internal_coder;
+	se_encoding external_enc;
 
 private:
 	const char* def_language_name(se_language lang) const {
@@ -40,14 +40,13 @@ public:
 	stemmer() = delete;
 	stemmer(se_language lang, se_encoding enc) : stem_obj(sb_stemmer_new(def_language_name(lang),
 																		 def_encoding_name(enc))),
-												 external_coder(enc),
-												 internal_coder(encoding_t::UTF_8)
+												 external_enc(enc)
 	{ }
 
 	std::string get_stem(std::string word) const {
-		external_coder.decode(word);
+		se_encoder::encode(word, external_enc, DEFAULT_ENCODING);
 		to_lower(word);
-		internal_coder.encode(word);
+		se_encoder::encode(word, DEFAULT_ENCODING, internal_enc);
 
 		auto stemmed = sb_stemmer_stem(
 			stem_obj,
@@ -61,8 +60,7 @@ public:
 							word.size()))
 		);
 
-		internal_coder.decode(res);
-		external_coder.encode(res);
+		se_encoder::encode(res, internal_enc, external_enc);
 
 		return res;
 	}
@@ -71,6 +69,8 @@ public:
 		sb_stemmer_delete(stem_obj);
 	}
 };
+
+const se_encoding stemmer::internal_enc = encoding_t::UTF_8;
 
 const std::unordered_map<se_encoding, const char*> stemmer::encoding_t_to_name_interpreter = {
 	{encoding_t::UTF_8,   nullptr},

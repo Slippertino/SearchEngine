@@ -32,6 +32,11 @@ public:
 		return type == enc.type;
 	}
 
+	friend std::ostream& operator<<(std::ostream& ostr, const se_language& obj) {
+		ostr << obj.to_string();
+		return ostr;
+	}
+
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(se_language, type)
 };
 

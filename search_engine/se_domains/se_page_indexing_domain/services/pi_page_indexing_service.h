@@ -56,7 +56,7 @@ private:
 
 		response_status resp_status;
 		resp_status.status  = runtime_status::SUCCESS;
-		resp_status.message = { msg.body->to_string() + " was successfully added in a queue for indexing!\n", encoding_t::ANSI };
+		resp_status.message = { msg.body->to_string() + " was successfully added in a queue for indexing!\n", DEFAULT_ENCODING };
 
 		MAKE_RESPONSE(page_indexing, (
 			msg.id,
@@ -121,11 +121,10 @@ private:
 			return !analyzer.is_valid_word(std::get<1>(excerpt));
 		});
 
-		en_de_coder coder(encoding);
 		stemmer stmr(std::get<1>(excerpt), encoding);
 		for (auto& w : words) {
 			w = stmr.get_stem(w);
-			coder.decode(w);
+			se_encoder::encode(w, encoding, DEFAULT_ENCODING);
 		}
 
 		for (auto& w : words) {
@@ -149,12 +148,12 @@ private:
 			auto begin = std::chrono::steady_clock::now();
 
 			MAKE_REQUEST(page_site_id_resp, page_and_site_id, (
-				string_enc{ page_site_urls.first,   encoding_t::ANSI },
-				string_enc{ page_site_urls.second,  encoding_t::ANSI }
+				string_enc{ page_site_urls.first,   DEFAULT_ENCODING },
+				string_enc{ page_site_urls.second,  DEFAULT_ENCODING }
 			))
 
 			MAKE_REQUEST(page_info_id_resp, page_info, (
-				string_enc{ page_site_urls.first, encoding_t::ANSI }
+				string_enc{ page_site_urls.first, DEFAULT_ENCODING }
 			))
 
 			GET_RESPONSE(page_site_id_resp, page_site_resp, page_and_site_id_response)
@@ -171,9 +170,8 @@ private:
 			info.page_id = page_site_resp.page_id;
 			info.site_id = page_site_resp.site_id;
 
-			en_de_coder coder(page_info_resp.page_encoding);
 			for (auto& w : container) {
-				coder.encode(std::get<0>(w.second));
+				se_encoder::encode(std::get<0>(w.second), DEFAULT_ENCODING, page_info_resp.page_encoding);
 				info.words.push_back({
 					string_enc{ std::get<0>(w.second),						    page_info_resp.page_encoding },
 					string_enc{ se_language(std::get<1>(w.second)).to_string(), encoding_t::UTF_8			 },
@@ -228,7 +226,6 @@ protected:
 		service->power_distribution.push_back({ &pi_page_indexing_service::collecting_info_handler,  10 });
 		service->power_distribution.push_back({ &pi_page_indexing_service::recording_info_handler,   10 });
 		service->power_distribution.push_back({ &pi_page_indexing_service::requests_handler,         1 });
-
 	}
 
 	void add_request_responders(const service_ptr& service) const override {

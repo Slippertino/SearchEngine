@@ -12,10 +12,11 @@
 #include <array>
 #include <queue>
 #include <regex>
-#include "../search_engine_analyzers/tools/en_de_coder.hpp"
-#include "se_domains/se_services_infrastructure/json_encoding_converter.hpp"
+//#include "../search_engine_analyzers/tools/en_de_coder.hpp"
+//#include "se_domains/se_services_infrastructure/json_encoding_converter.hpp"
 #include "search_engine.h"
-#include "se_domains/se_search_domain/services/s_db_responder_service.hpp"
+//#include "se_domains/se_search_domain/services/s_db_responder_service.hpp"
+//#include "se_domains/se_search_domain/services/s_search_service.hpp"
 
 const std::filesystem::path configure_path = std::filesystem::path(R"(..\\..\\..\\configuration.json)");
 
@@ -226,14 +227,18 @@ public:
     }
 };*/
 
+std::map<std::pair<int, int>, int> r;
+
 int main(int argc, char** argv) { 
     setlocale(LC_ALL, "ru");
     std::srand(std::time(nullptr));
 
+    r.insert({ { 1, 2 }, 2 });
+
     auto config = std::shared_ptr<se_config>(new pi_config());
     config->load(configure_path);
 
-    auto engine = builder<search_engine>().build();
+    auto engine = builder<search_engine>().build(); 
     engine->setup(config);
     engine->run(1000);
 }

@@ -25,8 +25,7 @@ private:
 		while (i < str.size()) {
 			if (whitespaces.find(str[i]) != std::string::npos) {
 				str = str.erase(i, 1);
-			} 
-			else {
+			} else {
 				++i;
 			}
 		}

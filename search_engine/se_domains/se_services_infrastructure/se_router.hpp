@@ -45,14 +45,19 @@ public:
 
 		message<message_t> msg;
 
-		if (message_t == message_type::REQUEST) {
+		switch (message_t)
+		{
+		case message_type::REQUEST:
 			msg.id = id_generator.generate({
 				std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id())),
 				key
 			});
-		}
-		else if (message_t == message_type::RESPONSE) {
+			break;
+		case message_type::RESPONSE:
 			msg.id = id;
+			break;
+		default:
+			break;
 		}
 
 		msg.body = context;

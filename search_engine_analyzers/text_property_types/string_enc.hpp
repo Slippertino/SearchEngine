@@ -9,12 +9,12 @@ struct string_enc {
 	se_encoding enc;
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(string_enc, str, enc)
-
-	friend std::ostream& operator<<(std::ostream& ostr, const string_enc& obj) {
-		ostr << "{ " << obj.str << " ; " << obj.enc << " }";
-		return ostr;
-	}
 };
+
+std::ostream& operator<<(std::ostream& ostr, const string_enc& obj) {
+	ostr << "{ " << obj.str << " ; " << obj.enc << " }";
+	return ostr;
+}
 
 template<>
 struct std::equal_to<string_enc> {

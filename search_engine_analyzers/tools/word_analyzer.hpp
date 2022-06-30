@@ -1,7 +1,8 @@
 #pragma once
 
-#include <text_property_types/se_encoding.hpp>
-#include <text_property_types/se_language.hpp>
+#include "../text_property_types/se_encoding.hpp"
+#include "../text_property_types/se_language.hpp"
+#include "se_encoder.hpp"
 #include "../stop_words/stop_words_container.hpp"
 
 class word_analyzer {
@@ -28,10 +29,11 @@ private:
 
 		return true;
 	}
+
 public:
 	word_analyzer() = default;
 	word_analyzer(const std::string& w, se_encoding enc) : word(w) {
-		en_de_coder(enc).decode(word);
+		se_encoder::encode(word, enc, DEFAULT_ENCODING);
 	}
 
 	bool is_valid_word(se_language lang) const {

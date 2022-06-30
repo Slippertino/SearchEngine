@@ -9,6 +9,12 @@ enum class encoding_t {
 	UNKNOWN
 };
 
+#ifdef WIN32
+#define DEFAULT_ENCODING encoding_t::ANSI
+#else
+#define DEFAULT_ENCODING encoding_t::UTF_8
+#endif
+
 class se_encoding : public se_text_property<encoding_t> {
 public:
 	se_encoding() = default;
@@ -31,11 +37,6 @@ public:
 		return type == enc.type;
 	}
 
-	friend std::ostream& operator<<(std::ostream& ostr, const se_encoding& obj) {
-		ostr << obj.to_string();
-		return ostr;
-	}
-
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(se_encoding, type)
 };
 
@@ -50,6 +51,11 @@ const std::unordered_map<encoding_t, std::string> se_encoding::value_to_name_int
 };
 
 const encoding_t se_encoding::default_value = encoding_t::UNKNOWN;
+
+std::ostream& operator<<(std::ostream& ostr, const se_encoding& obj) {
+	ostr << obj.to_string();
+	return ostr;
+}
 
 template<>
 struct std::hash<se_encoding> {

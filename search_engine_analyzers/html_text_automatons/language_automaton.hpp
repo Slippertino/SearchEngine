@@ -10,8 +10,10 @@ public:
     language_automaton() = default;
 
     void update(const GumboNode* node) override final {
-        if (!is_node_element(node))
+        if (!is_node_element(node)) {
             return;
+        }
+
         auto r = se_language(language_t::ENGLISH);
         GumboAttribute* attr;
         if (attr = gumbo_get_attribute(&node->v.element.attributes, "lang")) {

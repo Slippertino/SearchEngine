@@ -1,6 +1,6 @@
 #pragma once
 
-#include <tools/en_de_coder.hpp>
+#include <tools/se_encoder.hpp>
 #include <tools/url_analyzer.hpp>
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
@@ -94,7 +94,7 @@ private:
 
 			MAKE_REQUEST_WITH_RESPONSE(result, is_unique_page_url, (
 				result, 
-				string_enc{ link_prefix.first, encoding_t::ANSI }
+				string_enc{ link_prefix.first, DEFAULT_ENCODING }
 			))
 			CHECK_FOR_STOP(link_prefix)
 
@@ -107,21 +107,21 @@ private:
 			if (link_prefix.first == link_prefix.second) {
 				MAKE_REQUEST_WITH_RESPONSE(resp, site_recording, (
 					resp, 
-					string_enc{ link_prefix.first, encoding_t::ANSI }
+					string_enc{ link_prefix.first, DEFAULT_ENCODING }
 				))
 				CHECK_FOR_STOP(link_prefix)
 			}
 
 			MAKE_REQUEST_WITH_RESPONSE(page_info, url_to_analyze, (
 				page_info, 
-				string_enc{ link_prefix.second, encoding_t::ANSI },
-				string_enc{ link_prefix.first,  encoding_t::ANSI }
+				string_enc{ link_prefix.second, DEFAULT_ENCODING },
+				string_enc{ link_prefix.first, DEFAULT_ENCODING }
 			))
 			CHECK_FOR_STOP(link_prefix)
 
 			MAKE_REQUEST_WITH_RESPONSE(record_answer, record_page_info, (
 				record_answer, 
-				string_enc{ link_prefix.first, encoding_t::ANSI },
+				string_enc{ link_prefix.first, DEFAULT_ENCODING },
 				page_info.content, 
 				page_info.status_code
 			))
@@ -141,14 +141,13 @@ private:
 				continue;
 
 			MAKE_REQUEST(page_indexing_id_resp, page_indexing, (
-				string_enc{ link_prefix.first, encoding_t::ANSI },
-				string_enc{ link_prefix.second, encoding_t::ANSI }
+				string_enc{ link_prefix.first,  DEFAULT_ENCODING },
+				string_enc{ link_prefix.second, DEFAULT_ENCODING }
 			))
 
 			semaphore.enter(2);
-			en_de_coder coder(page_info.page_encoding);
 			for (auto s : page_info.linked_urls) {
-				coder.decode(s.str);
+				se_encoder::encode(s.str, page_info.page_encoding, DEFAULT_ENCODING);
 				auto url = url_analyzer(s.str, link_prefix.second).convert_to_url();
 
 				if (cache.find(url) == cache.end()) {

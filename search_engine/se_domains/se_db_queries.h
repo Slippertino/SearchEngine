@@ -17,7 +17,7 @@ protected:
 	static const std::string search_index_tb_name;
 	static const std::string sites_list_tb_name;
 
-	static const en_de_coder internal_coder;
+	static const se_encoding internal_encoding;
 
 	thread_safe_unordered_map<std::string, query_generator> message_name_query_interpreter;
 
@@ -26,14 +26,13 @@ protected:
 		static const std::string special_symbols = "\"\'\\";
 
 		std::for_each(args.begin(), args.end(), [&](string_enc* val) {
-			en_de_coder external_coder(val->enc);
-			external_coder.decode(val->str);
+			se_encoder::encode(val->str, val->enc, DEFAULT_ENCODING);
 
 			for (auto i = 0; i < val->str.size(); ++i)
 				if (special_symbols.find(val->str[i]) != std::string::npos)
 					val->str.insert(i++, "\\");
 
-			internal_coder.encode(val->str);
+			se_encoder::encode(val->str, DEFAULT_ENCODING, internal_encoding);
 		});
 	}
 
@@ -50,6 +49,10 @@ public:
 		: message_name_query_interpreter(std::move(m_n_q_i))
 	{ }
 
+	se_encoding get_encoding() const {
+		return internal_encoding;
+	}
+
 	std::vector<std::string> get_query_text(std::string name,
 											const std::shared_ptr<context>& args) {
 		query_generator gen;
@@ -65,4 +68,4 @@ const std::string se_db_queries::words_info_tb_name   = "words";
 const std::string se_db_queries::search_index_tb_name = "search_index";
 const std::string se_db_queries::sites_list_tb_name   = "sites";
 
-const en_de_coder se_db_queries::internal_coder = en_de_coder(encoding_t::UTF_8);
+const se_encoding se_db_queries::internal_encoding = encoding_t::UTF_8;

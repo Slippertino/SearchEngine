@@ -13,10 +13,11 @@ private:
 private:
 	void change_id() {
 		std::lock_guard<std::mutex> locker(mutex);
-		if (unique_id == std::numeric_limits<size_t>::max())
+		if (unique_id == std::numeric_limits<size_t>::max()) {
 			unique_id = 0;
-		else
+		} else {
 			++unique_id;
+		}
 	}
 
 public:

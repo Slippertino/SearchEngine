@@ -1,6 +1,5 @@
 #pragma once
 
-#include <tools/en_de_coder.hpp>
 #include <thread_safe_containers/thread_safe_queue.hpp>
 #include <thread_safe_containers/thread_safe_unordered_map.hpp>
 #include "../../se_service.hpp"
@@ -130,8 +129,8 @@ private:
 		page_and_site_id_response resp;
 
 		try {
-			auto page_query(comps.statement->executeQuery(comps.queries[0]));
-			auto site_query(comps.statement->executeQuery(comps.queries[1]));
+			std::unique_ptr<sql::ResultSet> page_query(comps.statement->executeQuery(comps.queries[0]));
+			std::unique_ptr<sql::ResultSet> site_query(comps.statement->executeQuery(comps.queries[1]));
 
 			if (!page_query->rowsCount() || !site_query->rowsCount())
 				throw std::exception("Unexisted url!\n");
@@ -173,7 +172,7 @@ private:
 			}
 
 			for (auto i = 2; i < comps.queries.size(); ++i) {
-				auto res = comps.statement->executeQuery(comps.queries[i]);
+				std::unique_ptr<sql::ResultSet> res(comps.statement->executeQuery(comps.queries[i]));
 				res->beforeFirst(); res->next();
 				resp.words_id.push_back(res->getUInt64("id"));
 			}
@@ -244,7 +243,7 @@ protected:
 
 		MAKE_REQUEST_WITH_RESPONSE(resp, init_database, (
 			resp,
-			string_enc{ db_name, encoding_t::ANSI }
+			string_enc{ db_name, DEFAULT_ENCODING }
 		))
 
 		SE_LOG("Setup: " << resp.to_string() << "\n");

@@ -9,8 +9,9 @@ public:
     link_automaton() = default;
 
     void link_automaton::update(const GumboNode* node) override final {
-        if (!is_node_element(node))
+        if (!is_node_element(node)) {
             return;
+        }
 
         GumboAttribute* attr;
         if (node->v.element.tag == GUMBO_TAG_A &&

@@ -2,14 +2,14 @@
 
 #include <string>
 #include <algorithm>
-#include "en_de_coder.hpp"
+#include "se_encoder.hpp"
 
 class text_parser {
 private:
 	static const std::string delimeters;
 
 private:
-	en_de_coder coder;
+	se_encoding text_encoding;
 
 private:
 	void skip_delimeters(std::string& text) const {
@@ -45,21 +45,21 @@ private:
 
 public:
 	text_parser() = delete;
-	text_parser(se_encoding enc) : coder(enc)
+	text_parser(se_encoding enc) : text_encoding(enc)
 	{ }
 
 	template<typename OutputCont>
 	void parse(std::string text,
 			   OutputCont& words,
 			   const std::function<void(OutputCont& cont, const std::string& word)>& add_op) const {
-		coder.decode(text);
+		se_encoder::encode(text, text_encoding, DEFAULT_ENCODING);
 
 		while (!text.empty()) {
 			skip_delimeters(text);
 
 			if (!text.empty()) {
 				auto word = get_word(text);
-				coder.encode(word);
+				se_encoder::encode(word, DEFAULT_ENCODING, text_encoding);
 				add_op(words, word);
 			}
 		}

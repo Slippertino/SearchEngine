@@ -11,8 +11,9 @@ public:
     encoding_automaton() = default;
 
     void encoding_automaton::update(const GumboNode* node) override final {
-        if (!is_node_element(node))
+        if (!is_node_element(node)) {
             return;
+        }
 
         GumboAttribute* attr;
         if (node->v.element.tag == GUMBO_TAG_META) {
@@ -25,8 +26,9 @@ public:
 
                 std::remove(cont.begin(), cont.end(), ' ');
 
-                if (cont.find(key) != std::string::npos)
+                if (cont.find(key) != std::string::npos) {
                     local_value = se_encoding(cont.substr(cont.find(key) + strlen(key)));
+                }
             }
         }
     }

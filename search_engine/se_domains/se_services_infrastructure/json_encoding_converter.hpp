@@ -4,8 +4,10 @@
 #include <algorithm>
 #include <unordered_set>
 #include <vector>
-#include <tools/en_de_coder.hpp>
+#include <tools/se_encoder.hpp>
 #include <text_property_types/string_enc.hpp>
+
+#define JSON_ENCODING encoding_t::UTF_8
 
 template<typename T>
 class json_encoding_converter {
@@ -28,20 +30,13 @@ public:
 
 template<>
 class json_encoding_converter<string_enc> {
-private:
-	void encode_base(std::string& s, se_encoding from, se_encoding to) {
-		en_de_coder encoder(to), decoder(from);
-		decoder.decode(s);
-		encoder.encode(s);
-	}
-
 public:
 	void encode(std::reference_wrapper<string_enc> obj) {
-		encode_base(obj.get().str, obj.get().enc, encoding_t::UTF_8);
+		se_encoder::encode(obj.get().str, obj.get().enc, JSON_ENCODING);
 	}
 
 	void decode(std::reference_wrapper<string_enc> obj) {
-		encode_base(obj.get().str, encoding_t::UTF_8, obj.get().enc);
+		se_encoder::encode(obj.get().str, JSON_ENCODING, obj.get().enc);
 	}
 };
 

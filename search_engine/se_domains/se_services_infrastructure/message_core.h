@@ -4,7 +4,7 @@
 #include <memory>
 #include <unordered_set>
 #include <nlohmann/json.hpp>
-#include <tools/en_de_coder.hpp>
+#include <tools/se_encoder.hpp>
 #include "json_encoding_converter.hpp"
 
 enum class runtime_status {
@@ -63,7 +63,7 @@ enum class message_type {
 		encode_data(SE_EXPAND(SE_PASTE(DECLARE_REF, __VA_ARGS__))); \
 		nlohmann::to_json(js, *this); \
 		decode_data(SE_EXPAND(SE_PASTE(DECLARE_REF, __VA_ARGS__))); \
-		return js.dump(); \
+		return typeid(*this).name() + js.dump(); \
 	}
 
 struct context {

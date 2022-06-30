@@ -11,6 +11,8 @@
 #include "../html_text_automatons/encoding_automaton.hpp"
 #include "../html_text_automatons/link_automaton.hpp"
 #include "../html_text_automatons/text_automaton.hpp"
+#include "../html_text_automatons/title_automaton.hpp"
+#include "se_encoder.hpp"
 #include "text_property_types/string_enc.hpp"
 
 class html_text_analyzer {
@@ -26,6 +28,7 @@ public:
     struct page_info {
         std::string url;
         std::string prefix;
+        std::string title;
         std::string content;
         se_encoding page_encoding;
         long status_code;
@@ -37,8 +40,9 @@ private:
     static const std::unordered_set<GumboTag> forbidden_tags;
     static const std::unordered_map<GumboTag, ratio_type> tag_text_priority;
     static const ratio_type default_tag_text_priority;
+    static const se_encoding internal_enc;
 
-    std::string content;
+    string_enc content;
 
 private:
     bool is_valid_node(const GumboNode* node) const {
@@ -83,13 +87,15 @@ private:
                                                               {"<footer",   "</footer>"  },
                                                               {"<noscript", "</noscript>"},
                                                               {"<!--",      "-->"        } };
+        auto& s = content.str;
+
         size_t off = 0;
         while (true) {
             std::pair<std::string, std::string> tag;
             auto bpos = std::string::npos;
 
             for (auto& p : tags) {
-                auto cur = content.find(p.first, off);
+                auto cur = s.find(p.first, off);
 
                 if (cur < bpos) {
                     bpos = cur;
@@ -98,9 +104,9 @@ private:
             }
 
             if (bpos != std::string::npos) {
-                auto epos = content.find(tag.second, bpos);
+                auto epos = s.find(tag.second, bpos);
                 off = bpos;
-                content.erase(bpos, epos + tag.second.size() - bpos);
+                s.erase(bpos, epos + tag.second.size() - bpos);
             }
             else
                 break;
@@ -110,6 +116,7 @@ private:
     void execute_parse(GumboOutput* output, page_info& packet) {
         encoding_automaton encoding;
         text_automaton text;
+        title_automaton title;
         link_automaton link;
 
         std::queue<std::tuple<GumboNode*, GumboNode*, language_automaton>> source;
@@ -128,9 +135,10 @@ private:
                 continue;
 
             encoding.update(child_node);
-            text.update(child_node);
-            link.update(child_node);
-            lang.update(child_node);
+            text    .update(child_node);
+            link    .update(child_node);
+            lang    .update(child_node);
+            title   .update(child_node);
 
             check_for_link(link, packet);
             check_for_text(text, lang, get_text_ratio(parent_node), packet);
@@ -142,6 +150,7 @@ private:
             }
         }
 
+        packet.title = title.get();
         packet.page_encoding = encoding.get();
 
         std::vector<string_enc> buff(
@@ -161,22 +170,28 @@ private:
 
 public:
     html_text_analyzer() = delete;
-    html_text_analyzer(const std::string& html_str) : content(html_str)
+    html_text_analyzer(const string_enc& html_str) : content(html_str) 
     { }
 
     html_text_analyzer operator= (const html_text_analyzer& g_h) = delete;
 
     void run_parse(page_info& packet) {
+        se_encoder::encode(content.str, content.enc, DEFAULT_ENCODING);
         crop_content();
+        se_encoder::encode(content.str, DEFAULT_ENCODING, internal_enc);
 
-        GumboOutput* output(gumbo_parse(content.c_str()));
-        packet.content = std::move(content);
+        GumboOutput* output(gumbo_parse(content.str.c_str()));
+
+        se_encoder::encode(content.str, internal_enc, content.enc);
+        packet.content = std::move(content.str);
 
         execute_parse(output, packet);
 
         gumbo_destroy_output(&kGumboDefaultOptions, output);
     }
 };
+
+const se_encoding html_text_analyzer::internal_enc = encoding_t::UTF_8;
 
 const std::unordered_set<GumboTag> html_text_analyzer::forbidden_tags = {
     GUMBO_TAG_SCRIPT,
