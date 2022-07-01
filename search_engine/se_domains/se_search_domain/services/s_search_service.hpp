@@ -70,7 +70,7 @@ private:
 
 			html_text_analyzer parser(string_enc { page_content_info.content.str, DEFAULT_ENCODING });
 			html_text_analyzer::page_info page_info;
-			parser.run_parse(info);
+			parser.run_parse(page_info);
 
 			req.title = string_enc{ page_info.title, page_info.page_encoding };
 
@@ -83,7 +83,7 @@ private:
 			}
 
 			for (auto& cur : key_words) {
-				snippet_builder.add_key_word(cur.first, se_language(cur.second));
+				snippet_builder.add_key_word(cur.first, se_language(cur.second.str));
 			}
 
 			req.snippet = snippet_builder.build();
@@ -187,11 +187,10 @@ protected:
 		text_parser parser(key_words_enc);
 		
 		std::vector<std::string> words;
-		parser.parse<std::vector<std::string>>(
+		parser.parse(
 			config->get_query(),
-			words,
-			[](std::vector<std::string>& cont, const std::string& word) {
-				cont.push_back(word);
+			[&words](const auto& word) {
+				words.push_back(word);
 			}
 		);
 

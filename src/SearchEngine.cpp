@@ -18,6 +18,8 @@
 //#include "se_domains/se_search_domain/services/s_db_responder_service.hpp"
 //#include "se_domains/se_search_domain/services/s_search_service.hpp"
 
+#include <tools/bold_snippet_builder.hpp>
+
 const std::filesystem::path configure_path = std::filesystem::path(R"(..\\..\\..\\configuration.json)");
 
 class polygon
@@ -140,100 +142,9 @@ void test() {
     std::cout << pol.run() << std::endl;
 }
 
-/*
-class ITest {
-public:
-    virtual void print() const = 0;
-};
-
-template<typename T>
-class A : public ITest{
-public:
-    void print() const override {
-        std::cout << "Unknown!\n";
-    }
-};
-
-template<>
-class A<int> : public ITest {
-public:
-    void print() const override {
-        std::cout << "Int!\n";
-    }
-};
-
-template<>
-class A<double> : public ITest {
-public:
-    void print() const override {
-        std::cout << "Double!\n";
-    }
-};
-
-template<typename T1, typename T2>
-class A<std::pair<T1, T2>> : public ITest {
-public:
-    void print() const override {
-        std::cout << "Pair!\n";
-        
-        ITest* t1 = new A<T1>();
-        ITest* t2 = new A<T2>();
-
-        t1->print();
-        t2->print();
-    }
-};
-
-template<typename... Args>
-class A<std::tuple<Args...>> : public ITest {
-private:
-    template<typename T, typename... Vals>
-    void print_type() const {
-        (new A<T>())->print();
-
-        if constexpr (sizeof...(Vals) > 0) {
-            print_type<Vals...>();
-        }
-    }
-
-public:
-    void print() const override {
-        std::cout << "Tuple!\n";
-
-        if constexpr (sizeof...(Args) > 0) {
-            print_type<Args...>();
-        }
-    }
-};
-
-template<typename T>
-class A<std::vector<T>> : public ITest {
-public:
-    void print() const override {
-        std::cout << "Vector!\n";
-
-        (new A<T>())->print();
-    }
-};
-
-template<typename Key, typename Value>
-class A<std::map<Key, Value>> : public ITest {
-public:
-    void print() const override {
-        std::cout << "Map!\n";
-
-        (new A<Key>())->print();
-        (new A<Value>())->print();
-    }
-};*/
-
-std::map<std::pair<int, int>, int> r;
-
 int main(int argc, char** argv) { 
     setlocale(LC_ALL, "ru");
     std::srand(std::time(nullptr));
-
-    r.insert({ { 1, 2 }, 2 });
 
     auto config = std::shared_ptr<se_config>(new pi_config());
     config->load(configure_path);

@@ -5,17 +5,8 @@
 #include <string>
 #include <exception>
 #include <windows.h>
+#include "se_pair_extension.hpp"
 #include "../text_property_types/se_encoding.hpp"
-
-template<>
-struct std::less<std::pair<se_encoding, se_encoding>> {
-	bool operator()(const std::pair<se_encoding, se_encoding>& lp, 
-				    const std::pair<se_encoding, se_encoding>& rp) const {
-		return (lp.first == rp.first)
-			? std::less<se_encoding>()(lp.second, rp.second)
-			: std::less<se_encoding>()(lp.first, rp.first);
-	}
-};
 
 class se_encoder {
 private:

@@ -48,10 +48,8 @@ public:
 	text_parser(se_encoding enc) : text_encoding(enc)
 	{ }
 
-	template<typename OutputCont>
 	void parse(std::string text,
-			   OutputCont& words,
-			   const std::function<void(OutputCont& cont, const std::string& word)>& add_op) const {
+			   const std::function<void(const std::string& word)>& add_op) const {
 		se_encoder::encode(text, text_encoding, DEFAULT_ENCODING);
 
 		while (!text.empty()) {
@@ -60,7 +58,7 @@ public:
 			if (!text.empty()) {
 				auto word = get_word(text);
 				se_encoder::encode(word, DEFAULT_ENCODING, text_encoding);
-				add_op(words, word);
+				add_op(word);
 			}
 		}
 	}

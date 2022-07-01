@@ -108,10 +108,9 @@ private:
 		std::list<std::string> words;
 
 		text_parser parser(encoding);
-		parser.parse<std::list<std::string>>(
+		parser.parse(
 			std::get<0>(excerpt), 
-			words, 
-			[](std::list<std::string>& words, const std::string& word) { 
+			[&words](const auto& word) { 
 				words.push_back(word); 
 			}
 		);
