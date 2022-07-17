@@ -9,7 +9,7 @@
 template<class ws_t>
 class se_ws_builder : public se_builder<ws_t> {
 protected:
-	void configure_logger(const std::shared_ptr<se_logable_component>& comp) const {
+	virtual void configure_logger(const std::shared_ptr<se_logable_component>& comp) const {
 		auto logger = se_loggers_storage::get_instance()->get_logger(comp->get_id());
 		auto name = comp->get_component_name();
 
@@ -33,11 +33,11 @@ protected:
 	}
 
 protected:
-	virtual void configure_network(const object_ptr& ws) = 0;
-	virtual void configure_switches_network(const object_ptr& ws) = 0;
-	virtual void add_request_responders(const object_ptr& ws) = 0;
-	virtual void add_unused_response_type_names(const object_ptr& ws) = 0;
+	virtual void configure_own_network(const object_ptr& ws) const = 0;
+	virtual void configure_switches_network(const object_ptr& ws) const = 0;
+	virtual void add_request_responders(const object_ptr& ws)  const = 0;
+	virtual void add_unused_response_type_names(const object_ptr& ws) const = 0;
 
 public:
-	virtual void build(object_ptr object) override = 0;
+	virtual void build(object_ptr object) const override = 0;
 };

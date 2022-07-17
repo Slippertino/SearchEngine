@@ -23,7 +23,7 @@ public:
 		return switch_table.find(msg_hash) != switch_table.cend();
 	}
 
-	void subscribe(std::shared_ptr<se_network_component> receiver, const std::string& msg_name) {
+	se_network_component* subscribe(std::shared_ptr<se_network_component> receiver, const std::string& msg_name) {
 		auto msg_hash = std::hash<std::string>()(msg_name);
 
 		if (switch_table.find(msg_hash) == switch_table.cend()) {
@@ -34,6 +34,8 @@ public:
 			cur_subscribers.push_back(std::weak_ptr<se_network_component>(receiver));
 			switch_table.set(msg_hash, cur_subscribers);
 		}
+
+		return this;
 	}
 
 	virtual std::string send_message(message_type type, const std::string& msg_name, const std::shared_ptr<context>& body, std::string id) = 0;

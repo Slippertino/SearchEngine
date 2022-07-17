@@ -1,17 +1,18 @@
 #pragma once
 
-#include <thread_safe_containers/thread_safe_queue.hpp>
-#include <thread_safe_containers/thread_safe_unordered_map.hpp>
-#include "../../se_service.hpp"
-#include "../pi_messages.h"
-#include "../../se_services_infrastructure/se_services_communication.hpp"
-#include "../pi_queries.h"
-#include <engine/db_entities/se_db_responder.hpp>
+#include <thread_extensions/thread_safe_containers/thread_safe_queue.hpp>
+#include <thread_extensions/thread_safe_containers/thread_safe_unordered_map.hpp>
+#include <core/se_service.hpp>
+#include <core/builders/se_service_builder.hpp>
+#include <engine/se_db_entities/se_db_responder.hpp>
+#include <engine/se_db_entities/se_db_connection.hpp>
+#include "../messages/pi_internal_messages.hpp"
+#include "../pi_queries.hpp"
 #include "../pi_config.hpp"
 
-class pi_db_responder_service : public se_service<pi_db_responder_service, pi_config>,
+class pi_db_responder_service final : public se_service<pi_db_responder_service, pi_config>,
 								public se_db_responder<pi_queries> {
-	SE_SERVICE(pi_db_responder_service)
+	SE_SERVICE(pi_db_responder_service, db_responder_service)
 
 private:
 	void init_database_request_responder(msg_request msg) {
@@ -31,12 +32,12 @@ private:
 			resp.status.message = { "Fail query!\n INITIALIZATION : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
-		MAKE_RESPONSE(init_database, (
+		MAKE_RESPONSE(init_database_response, (
 			msg.id,
 			resp
 		))
 
-		connections.add(comps.connection);
+		free_components(comps);
 	}
 
 	void sites_list_recording_request_responder(msg_request msg) {
@@ -60,12 +61,12 @@ private:
 			resp.status.message = { "Fail query!\n SITES_LIST_RECORDING : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
-		MAKE_RESPONSE(site_recording, (
+		MAKE_RESPONSE(site_recording_response, (
 			msg.id,
 			resp
 		))
 
-		connections.add(comps.connection);
+		free_components(comps);
 	}
 
 	void record_page_info_request_responder(msg_request msg) {
@@ -89,12 +90,12 @@ private:
 			resp.status.message = { "Fail query!\n RECORD_PAGE_INFO : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
-		MAKE_RESPONSE(record_page_info, (
+		MAKE_RESPONSE(record_page_info_response, (
 			msg.id,
 			resp
 		))
 
-		connections.add(comps.connection);
+		free_components(comps);
 	}
 
 	void is_unique_page_url_request_responder(msg_request msg) {
@@ -114,12 +115,12 @@ private:
 			resp.status.message = { "Fail query!\n IS_UNIQUE_PAGE_URL : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
-		MAKE_RESPONSE(is_unique_page_url, (
+		MAKE_RESPONSE(is_unique_page_url_response, (
 			msg.id,
 			resp
 		))
 
-		connections.add(comps.connection);
+		free_components(comps);
 	}
 
 	void page_and_site_id_request_responder(msg_request msg) {
@@ -149,12 +150,12 @@ private:
 			resp.status.message = { "Fail query!\n PAGE_AND_SITE_ID : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
-		MAKE_RESPONSE(page_and_site_id, (
+		MAKE_RESPONSE(page_and_site_id_response, (
 			msg.id,
 			resp
 		))
 
-		connections.add(comps.connection);
+		free_components(comps);
 	}
 
 	void record_word_info_request_responder(msg_request msg) {
@@ -185,12 +186,12 @@ private:
 			resp.status.message = { "Fail query!\n RECORD_WORD_INFO : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
-		MAKE_RESPONSE(record_word_info, (
+		MAKE_RESPONSE(record_word_info_response, (
 			msg.id,
 			resp
 		))
 
-		connections.add(comps.connection);
+		free_components(comps);
 	}
 
 	void record_word_to_index_request_responder(msg_request msg) {
@@ -214,16 +215,16 @@ private:
 			resp.status.message = { "Fail query!\n RECORD_WORD_TO_INDEX : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
-		MAKE_RESPONSE(record_word_to_index, (
+		MAKE_RESPONSE(record_word_to_index_response, (
 			msg.id,
 			resp
 		))
 
-		connections.add(comps.connection);
+		free_components(comps);
 	}
 
 protected:
-	void setup_base(pi_config* config) override {
+	void setup_base(pi_config* config) override final {
 		std::thread init_thread(&pi_db_responder_service::requests_handler, this);
 		init_thread.detach();
 
@@ -231,7 +232,7 @@ protected:
 
 		for (auto i = 0; i < pool.size(); ++i) {
 			try {
-				auto con = std::shared_ptr<sql::Connection>(CONNECT(config));
+				auto con = std::shared_ptr<sql::Connection>(get_mysql_connection(*config));
 				con->setSchema(db_name);
 
 				connections.add(con);
@@ -241,7 +242,7 @@ protected:
 			}
 		}
 
-		MAKE_REQUEST_WITH_RESPONSE(resp, init_database, (
+		MAKE_REQUEST_WITH_RESPONSE(resp, init_database_request, init_database_response, (
 			resp,
 			string_enc{ db_name, DEFAULT_ENCODING }
 		))
@@ -249,7 +250,7 @@ protected:
 		SE_LOG("Setup: " << resp.to_string() << "\n");
 	}
 
-	void clear() override {
+	void clear() override final {
 		se_service<pi_db_responder_service, pi_config>::clear();
 
 		while (!connections.empty()) {
@@ -258,54 +259,54 @@ protected:
 			con->close();
 		}
 	}
-
-public:
-	pi_db_responder_service() = delete;
-	pi_db_responder_service(size_t id, const fs::path& root, const std::shared_ptr<se_router>& in_router) :
-		se_service(id, root / R"(services)" / get_full_name(get_component_name()), in_router)
-	{ }
-
-	std::string get_component_name() const override {
-		return std::string("db_responder_service");
-	}
 };
 
 template<>
-class builder<pi_db_responder_service> : public abstract_service_builder<pi_db_responder_service> {
+class se_builder_imp<pi_db_responder_service> final : public se_service_builder<pi_db_responder_service> {
 protected:
-	void add_subscriptions(const service_ptr& service) const override {
-		service->router->subscribe<init_database_request>(service);
-		service->router->subscribe<init_database_response>(service);
-		service->router->subscribe<record_page_info_request>(service);
-		service->router->subscribe<is_unique_page_url_request>(service);
-		service->router->subscribe<site_recording_request>(service);
-		service->router->subscribe<page_and_site_id_request>(service);
-		service->router->subscribe<record_word_info_request>(service);
-		service->router->subscribe<record_word_to_index_request>(service);
+	void configure_own_network(const object_ptr& service) const override final {
+		service
+			->subscribe(service->internal_switch, typeid(init_database_request).name())
+			->subscribe(service->internal_switch, typeid(init_database_response).name())
+			->subscribe(service->internal_switch, typeid(record_page_info_response).name())
+			->subscribe(service->internal_switch, typeid(is_unique_page_url_response).name())
+			->subscribe(service->internal_switch, typeid(sites_list_recording_response).name())
+			->subscribe(service->internal_switch, typeid(page_and_site_id_response).name())
+			->subscribe(service->internal_switch, typeid(record_word_info_response).name())
+			->subscribe(service->internal_switch, typeid(record_word_to_index_response).name());
 	}
 
-	void add_power_distribution(const service_ptr& service) const override {
-		service->power_distribution.push_back({ &pi_db_responder_service::requests_handler, 1 });
+	void configure_switches_network(const object_ptr& service) const override final {
+		service->internal_switch
+			->subscribe(service, typeid(init_database_request).name())
+			->subscribe(service, typeid(init_database_response).name())
+			->subscribe(service, typeid(record_page_info_request).name())
+			->subscribe(service, typeid(is_unique_page_url_request).name())
+			->subscribe(service, typeid(sites_list_recording_request).name())
+			->subscribe(service, typeid(page_and_site_id_request).name())
+			->subscribe(service, typeid(record_word_info_request).name())
+			->subscribe(service, typeid(record_word_to_index_request).name());
 	}
 
-	void add_request_responders(const service_ptr& service) const override {
-		service->responders.insert(typeid(init_database_request).name(),
-								   &pi_db_responder_service::init_database_request_responder);
-		service->responders.insert(typeid(is_unique_page_url_request).name(),
-								   &pi_db_responder_service::is_unique_page_url_request_responder);
-		service->responders.insert(typeid(record_page_info_request).name(),
-								   &pi_db_responder_service::record_page_info_request_responder);
-		service->responders.insert(typeid(site_recording_request).name(),
-								   &pi_db_responder_service::sites_list_recording_request_responder);
-		service->responders.insert(typeid(page_and_site_id_request).name(),
-								   &pi_db_responder_service::page_and_site_id_request_responder);
-		service->responders.insert(typeid(record_word_info_request).name(),
-								   &pi_db_responder_service::record_word_info_request_responder);
-		service->responders.insert(typeid(record_word_to_index_request).name(),
-								   &pi_db_responder_service::record_word_to_index_request_responder);
+	void add_request_responders(const object_ptr& service) const override final {
+		service->responders = {
+			{ typeid(init_database_request).name(),         &pi_db_responder_service::init_database_request_responder        },
+			{ typeid(is_unique_page_url_request).name(),    &pi_db_responder_service::is_unique_page_url_request_responder   },
+			{ typeid(record_page_info_request).name(),      &pi_db_responder_service::record_page_info_request_responder	 },
+			{ typeid(sites_list_recording_request).name(),  &pi_db_responder_service::sites_list_recording_request_responder },
+			{ typeid(page_and_site_id_request).name(),      &pi_db_responder_service::page_and_site_id_request_responder	 },
+			{ typeid(record_word_info_request).name(),      &pi_db_responder_service::record_word_info_request_responder	 },
+			{ typeid(record_word_to_index_request).name(),  &pi_db_responder_service::record_word_to_index_request_responder },
+		};
 	}
 
-	void add_unused_response_type_names(const service_ptr& service) const override {
+	void add_unused_response_type_names(const object_ptr& service) const override final {
 		return;
+	}
+
+	void add_power_distribution(const object_ptr& service) const override final {
+		service->power_distribution = {
+			{ &pi_db_responder_service::requests_handler, 1 },
+		};
 	}
 };

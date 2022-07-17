@@ -35,9 +35,9 @@ public: \
 		return *this; \
 	} 
 
-#define SE_CONFIG_REAL_PROPERTY(config_type, property_type, property_name, get_expression, set_expression) \
+#define SE_CONFIG_REAL_PROPERTY(config_type, property_type, property_name, get_expression, set_expression, default_value) \
 private: \
-	property_type property_name; \
+	property_type property_name = default_value; \
 	SE_CONFIG_PROPERTY(config_type, property_type, property_name, get_expression, set_expression) \
 
 #define SE_CONFIG_VIRTUAL_PROPERTY(config_type, property_type, property_name, get_expression, set_expression) \

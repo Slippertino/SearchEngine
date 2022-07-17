@@ -2,19 +2,20 @@
 
 #include <vector>
 #include <list>
-#include <tools/text_parser.hpp>
-#include <tools/word_analyzer.hpp>
-#include <text_property_types/se_encoding.hpp>
-#include <text_property_types/se_language.hpp>
-#include <tools/stemmer.hpp>
-#include <thread_safe_containers/thread_safe_queue.hpp>
-#include <thread_safe_containers/thread_safe_unordered_map.hpp>
-#include "../../se_service.hpp"
-#include "../pi_messages.h"
+#include <core/se_service.hpp>
+#include <core/builders/se_service_builder.hpp>
+#include <search_engine_analyzers/tools/text_parser.hpp>
+#include <search_engine_analyzers/tools/word_analyzer.hpp>
+#include <search_engine_analyzers/tools/stemmer.hpp>
+#include <search_engine_analyzers/text_property_types/se_encoding.hpp>
+#include <search_engine_analyzers/text_property_types/se_language.hpp>
+#include <thread_extensions/thread_safe_containers/thread_safe_queue.hpp>
+#include <thread_extensions/thread_safe_containers/thread_safe_unordered_map.hpp>
+#include "../messages/pi_internal_messages.hpp"
 #include "../pi_config.hpp"
 
 class pi_page_indexing_service : public se_service<pi_page_indexing_service, pi_config> {
-	SE_SERVICE(pi_page_indexing_service)
+	SE_SERVICE(pi_page_indexing_service, page_indexing_service)
 
 	#define CHECK_FOR_STOP(cont, arg) if (stop_flag) { cont.add(std::move(arg)); continue; }
 
@@ -58,7 +59,7 @@ private:
 		resp_status.status  = runtime_status::SUCCESS;
 		resp_status.message = { msg.body->to_string() + " was successfully added in a queue for indexing!\n", DEFAULT_ENCODING };
 
-		MAKE_RESPONSE(page_indexing, (
+		MAKE_RESPONSE(page_indexing_response, (
 			msg.id,
 			resp_status
 		))
@@ -77,7 +78,7 @@ private:
 				words_to_record[i] = { std::get<0>(obj.words[i]), std::get<1>(obj.words[i]) };
 			}
 
-			MAKE_REQUEST_WITH_RESPONSE(record_word_resp, record_word_info, (
+			MAKE_REQUEST_WITH_RESPONSE(record_word_resp, record_word_info_request, record_word_info_response, (
 				record_word_resp,
 				obj.site_id,
 				words_to_record
@@ -94,7 +95,7 @@ private:
 				words_index_params[i] = {  obj.page_id, record_word_resp.words_id[i], std::get<2>(obj.words[i]) };
 			}
 
-			MAKE_REQUEST(record_to_index_id, record_word_to_index, (
+			MAKE_REQUEST(record_to_index_id, record_word_to_index_request, (
 				words_index_params
 			))
 
@@ -146,12 +147,12 @@ private:
 
 			auto begin = std::chrono::steady_clock::now();
 
-			MAKE_REQUEST(page_site_id_resp, page_and_site_id, (
+			MAKE_REQUEST(page_site_id_resp, page_and_site_id_request, (
 				string_enc{ page_site_urls.first,   DEFAULT_ENCODING },
 				string_enc{ page_site_urls.second,  DEFAULT_ENCODING }
 			))
 
-			MAKE_REQUEST(page_info_id_resp, page_info, (
+			MAKE_REQUEST(page_info_id_resp, page_info_request, (
 				string_enc{ page_site_urls.first, DEFAULT_ENCODING }
 			))
 
@@ -194,45 +195,51 @@ private:
 protected:
 	void setup_base(pi_config* config) override {}
 
-	void clear() override {
+	void clear() override final {
 		se_service<pi_page_indexing_service, pi_config>::clear();
 		source_for_collect.clear();
-		source_for_record.clear();
-	}
-
-public:
-	pi_page_indexing_service(size_t id, const fs::path& root, const std::shared_ptr<se_router>& in_router) :
-		se_service(id, root / R"(services)" / get_full_name(get_component_name()), in_router)
-	{ }
-
-	std::string get_component_name() const override {
-		return std::string("page_indexing_service");
+		source_for_record .clear();
 	}
 };
 
 template<>
-class builder<pi_page_indexing_service>: public abstract_service_builder<pi_page_indexing_service> {
+class se_builder_imp<pi_page_indexing_service>: public se_service_builder<pi_page_indexing_service> {
 protected:
-	void add_subscriptions(const service_ptr& service) const override {
-		service->router->subscribe<page_indexing_request>(service);
-		service->router->subscribe<page_and_site_id_response>(service);
-		service->router->subscribe<page_info_response>(service);
-		service->router->subscribe<record_word_info_response>(service);
-		service->router->subscribe<record_word_to_index_response>(service);
+	void configure_own_network(const object_ptr& service) const override final {
+		service
+			->subscribe(service->internal_switch, typeid(page_indexing_response).name())
+			->subscribe(service->internal_switch, typeid(page_and_site_id_request).name())
+			->subscribe(service->internal_switch, typeid(page_info_request).name())
+			->subscribe(service->internal_switch, typeid(record_word_info_request).name())
+			->subscribe(service->internal_switch, typeid(record_word_to_index_request).name());
 	}
 
-	void add_power_distribution(const service_ptr& service) const override {
-		service->power_distribution.push_back({ &pi_page_indexing_service::collecting_info_handler,  10 });
-		service->power_distribution.push_back({ &pi_page_indexing_service::recording_info_handler,   10 });
-		service->power_distribution.push_back({ &pi_page_indexing_service::requests_handler,         1 });
+	void configure_switches_network(const object_ptr& service) const override final {
+		service->internal_switch
+			->subscribe(service, typeid(page_indexing_request).name())
+			->subscribe(service, typeid(page_and_site_id_response).name())
+			->subscribe(service, typeid(page_info_response).name())
+			->subscribe(service, typeid(record_word_info_response).name())
+			->subscribe(service, typeid(record_word_to_index_response).name());
 	}
 
-	void add_request_responders(const service_ptr& service) const override {
-		service->responders.insert(typeid(page_indexing_request).name(),
-								   &pi_page_indexing_service::page_indexing_request_responder);
+	void add_request_responders(const object_ptr& service) const override final {
+		service->responders = {
+			{ typeid(page_indexing_request).name(), &pi_page_indexing_service::page_indexing_request_responder },
+		};
 	}
 
-	void add_unused_response_type_names(const service_ptr& service) const override {
-		service->unused_response_type_names.insert(typeid(record_word_to_index_request).name(), nullptr);
+	void add_unused_response_type_names(const object_ptr& service) const override final {
+		service->unused_response_type_names = {
+			{ typeid(record_word_to_index_request).name(), nullptr },
+		};
+	}
+
+	void add_power_distribution(const object_ptr& service) const override final {
+		service->power_distribution = {
+			{ &pi_page_indexing_service::collecting_info_handler,  10 },
+			{ &pi_page_indexing_service::recording_info_handler,   10 },
+			{ &pi_page_indexing_service::requests_handler,         1  },
+		};
 	}
 };

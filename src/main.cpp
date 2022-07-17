@@ -12,6 +12,8 @@
 #include <array>
 #include <queue>
 #include <regex>
+#include "se_config/se_config.hpp"
+#include "se_primary_domain/domains/se_pages_indexing_domain/pi_config.hpp"
 //#include "../search_engine_analyzers/tools/en_de_coder.hpp"
 //#include "se_domains/se_services_infrastructure/json_encoding_converter.hpp"
 //#include "search_engine.h"
@@ -21,11 +23,13 @@
 //#include <tools/bold_snippet_builder.hpp>
 //#include "se_domains/se_search_domain/s_config.hpp"
 //#include "../se/se_service.hpp"
-#include "search_engine_analyzers/tools/stemmer.hpp"
-#include "search_engine_analyzers/tools/html_text_analyzer.hpp"
+//#include "search_engine_analyzers/tools/stemmer.hpp"
+//#include "search_engine_analyzers/tools/html_text_analyzer.hpp"
 //#include "se_service.hpp"
 //#include "builders/se_service_builder.hpp"
 //#include "se_domain.hpp"
+#include "se_db_entities/se_db_connection.hpp"
+
 const std::filesystem::path configure_path = std::filesystem::path(R"(..\\..\\..\\configuration.json)");
 
 class polygon
@@ -151,6 +155,9 @@ void test() {
 int main(int argc, char** argv) { 
     setlocale(LC_ALL, "ru");
     std::srand(std::time(nullptr));
+
+    auto config = std::shared_ptr<pi_config>(new pi_config());
+    config->load(configure_path);
 
     /*auto config = std::shared_ptr<se_config>(new pi_config());
     config->load(configure_path);

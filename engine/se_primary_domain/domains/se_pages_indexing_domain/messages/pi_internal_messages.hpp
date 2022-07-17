@@ -5,30 +5,30 @@
 #include <search_engine_analyzers/text_property_types/se_encoding.hpp>
 #include <search_engine_analyzers/text_property_types/se_language.hpp>
 
-struct site_recording_request : context {
+struct sites_list_recording_request : context {
 	string_enc site;
 
 	SE_CONTEXT(
-		site_recording_request, -1,
+		sites_list_recording_request, -1,
 		site
 	)
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-		site_recording_request,
+		sites_list_recording_request,
 		site
 	)
 };
 
-struct site_recording_response : context {
+struct sites_list_recording_response : context {
 	response_status status;
 
 	SE_CONTEXT(
-		site_recording_response, -1,
+		sites_list_recording_response, -1,
 		status
 	)
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-		site_recording_response,
+		sites_list_recording_response,
 		status
 	)
 };

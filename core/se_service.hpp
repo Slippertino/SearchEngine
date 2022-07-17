@@ -14,6 +14,9 @@ template<class service_t, class config_t>
 class se_service : public se_work_station<service_t, config_t>,
 				   public se_service_behaviour {
 protected:
+	#define SE_SERVICE(type_name, component_name) \
+			SE_WORK_STATION(type_name, se_service, component_name)
+
 	using power_consumer = std::function<void(service_t*)>;
 	using power_distribution_container = std::vector<std::pair<power_consumer, size_t>>;
 
@@ -21,7 +24,7 @@ protected:
 	power_distribution_container power_distribution;
 
 protected:
-	void disturbe_processes(service_t* service, size_t threads_count) {
+	void disturbe_processes(size_t threads_count) {
 		stop_flag = false;
 		pool = thread_pool(threads_count + 1);
 
@@ -33,15 +36,20 @@ protected:
 		for (auto& process : power_distribution) {
 			int cur_threads = threads_count / total * process.second;
 
-			if (cur_threads < 1)
-				throw std::exception("lack of threads");
+			if (cur_threads < 1) {
+				throw std::exception("Lack of threads to run!");
+			}
 
 			for (auto i = 0; i < cur_threads; ++i) {
-				pool.add_task(process.first, service);
+				pool.add_task(process.first, get_object());
 			}
 		}
 
-		pool.add_task(&service_t::responses_handler, service);
+		pool.add_task(&service_t::responses_handler, get_object());
+	}
+
+	virtual void clear() override = 0 {
+		se_work_station<service_t, config_t>::clear();
 	}
 
 	virtual service_t* get_object() const override = 0;
@@ -69,7 +77,7 @@ public:
 
 	void run(size_t threads_count) override {
 		try {
-			disturbe_processes(get_object(), threads_count);
+			disturbe_processes(threads_count);
 			SE_LOG("Service was successfully run with " << threads_count << " flows!\n");
 		} catch (const std::exception& ex) {
 			SE_LOG("Error while trying to run service with " << threads_count << " flows! Message : " << ex.what() << "\n");
@@ -79,8 +87,7 @@ public:
 	void stop() override {
 		try {
 			stop_flag = true;
-			pool.clear();
-			se_services_communication::clear();
+			se_work_station<service_t, config_t>::clear();
 			SE_LOG("Service was successfully stopped!\n");
 		} catch (const std::exception& ex) {
 			SE_LOG("Error while trying to stop! " << "Message : " << ex.what() << "\n");
@@ -103,7 +110,7 @@ public:
 
 	void reset() override {
 		try {
-			se_service<service_t, config_t>::clear();
+			get_object()->clear();
 			SE_LOG("Service was successfully reset!\n");
 		} catch (const std::exception& ex) {
 			SE_LOG("Error while trying to reset! " << "Message : " << ex.what() << "\n");

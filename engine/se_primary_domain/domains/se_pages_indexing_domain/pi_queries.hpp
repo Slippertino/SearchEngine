@@ -8,18 +8,18 @@ class pi_queries : public se_db_queries
 protected:
 	thread_safe_unordered_map<std::string, query_generator> get_message_name_query_interpreter() const override {
 		return {
-			{ typeid(init_database_request).name(),        &pi_queries::init_database        },
-			{ typeid(is_unique_page_url_request).name(),   &pi_queries::is_unique_page_url   },
-			{ typeid(record_page_info_request).name(),     &pi_queries::record_page_info     },
-			{ typeid(site_recording_request).name(),       &pi_queries::site_recording       },
-			{ typeid(page_and_site_id_request).name(),     &pi_queries::page_and_site_id     },
-			{ typeid(record_word_info_request).name(),     &pi_queries::record_word_info     },
-			{ typeid(record_word_to_index_request).name(), &pi_queries::record_word_to_index },
+			{ typeid(init_database_request).name(),        &pi_queries::get_init_database_queries		 },
+			{ typeid(is_unique_page_url_request).name(),   &pi_queries::get_is_unique_page_url_queries   },
+			{ typeid(record_page_info_request).name(),     &pi_queries::get_record_page_info_queries     },
+			{ typeid(sites_list_recording_request).name(), &pi_queries::get_sites_list_recording_queries },
+			{ typeid(page_and_site_id_request).name(),     &pi_queries::get_page_and_site_id_queries     },
+			{ typeid(record_word_info_request).name(),     &pi_queries::get_record_word_info_queries     },
+			{ typeid(record_word_to_index_request).name(), &pi_queries::get_record_word_to_index_queries },
 		};
 	}
 
 private:
-	static std::vector<std::string> init_database(const std::shared_ptr<context>& args) {
+	static std::vector<std::string> get_init_database_queries(const std::shared_ptr<context>& args) {
 		std::vector<std::string> res;
 		std::ostringstream ostr;
 
@@ -82,7 +82,7 @@ private:
 		return res;
 	}
 
-	static std::vector<std::string> site_recording(const std::shared_ptr<context>& args) {
+	static std::vector<std::string> get_sites_list_recording_queries(const std::shared_ptr<context>& args) {
 		std::vector<std::string> res;
 		std::ostringstream ostr;
 
@@ -97,7 +97,7 @@ private:
 		return res;
 	}
 
-	static std::vector<std::string> is_unique_page_url(const std::shared_ptr<context>& args) {
+	static std::vector<std::string> get_is_unique_page_url_queries(const std::shared_ptr<context>& args) {
 		std::vector<std::string> res;
 		std::ostringstream ostr;
 
@@ -112,7 +112,7 @@ private:
 		return res;
 	}
 
-	static std::vector<std::string> record_page_info(const std::shared_ptr<context>& args) {
+	static std::vector<std::string> get_record_page_info_queries(const std::shared_ptr<context>& args) {
 		std::vector<std::string> res;
 		std::ostringstream ostr;
 
@@ -127,7 +127,7 @@ private:
 		return res;
 	}
 
-	static std::vector<std::string> page_and_site_id(const std::shared_ptr<context>& args) {
+	static std::vector<std::string> get_page_and_site_id_queries(const std::shared_ptr<context>& args) {
 		std::vector<std::string> res;
 		std::ostringstream ostr;
 
@@ -146,7 +146,7 @@ private:
 		return res;
 	}
 
-	static std::vector<std::string> record_word_info(const std::shared_ptr<context>& args) {
+	static std::vector<std::string> get_record_word_info_queries(const std::shared_ptr<context>& args) {
 		std::vector<std::string> res;
 		std::ostringstream ostr;
 
@@ -200,7 +200,7 @@ private:
 		return res;
 	}
 
-	static std::vector<std::string> record_word_to_index(const std::shared_ptr<context>& args) {
+	static std::vector<std::string> get_record_word_to_index_queries(const std::shared_ptr<context>& args) {
 		std::vector<std::string> res;
 		std::ostringstream ostr;
 

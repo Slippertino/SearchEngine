@@ -13,14 +13,6 @@
 
 
 class pi_page_dumper_service : public se_service<pi_page_dumper_service, pi_config> {
-public:
-	enum class indexing_modes {
-		LOWER_BOUND = -1,
-		FULL,
-		SELECTIVE,
-		UPPER_BOUND
-	};
-
 private:
 	SE_SERVICE(pi_page_dumper_service)
 

@@ -11,7 +11,6 @@
 #include "se_switch_board.hpp"
 #include "se_logable_component.hpp"
 #include "builders/se_builder.hpp"
-#include "builders/se_builder_imp.hpp"
 #include "messages/message_id_generator.hpp"
 
 template<class station_t, class config_t>
@@ -42,11 +41,11 @@ public: \
 #define GET_RESPONSE(msg_id, var_name, type_name) type_name var_name; get_response(msg_id, var_name);
 
 #define MAKE_REQUEST(id_name, msg_name, params) \
-	std::string id_name = make_request<msg_name##_request> params; 
-#define MAKE_REQUEST_WITH_RESPONSE(name, msg_name, params) \
-	msg_name##_response name; make_request_with_response<msg_name##_request, msg_name##_response> params; 
+	std::string id_name = make_request<msg_name> params; 
+#define MAKE_REQUEST_WITH_RESPONSE(name, msg_name_req, msg_name_resp, params) \
+	msg_name_resp name; make_request_with_response<msg_name_req, msg_name_resp> params; 
 #define MAKE_RESPONSE(msg_name, params) \
-	make_response<msg_name##_response> params; 
+	make_response<msg_name> params; 
 
 protected:
 	using station_type				   = typename station_t;
@@ -113,7 +112,7 @@ protected:
 		);
 	}
 
-	virtual void clear() {
+	virtual void clear() = 0 {
 		pool	    .clear();
 		responses_id.clear();
 		requests	.clear();

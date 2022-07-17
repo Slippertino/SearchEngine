@@ -102,7 +102,7 @@ protected:
 		pool.set_inactive(std::this_thread::get_id());
 	}
 
-	virtual void clear() override {
+	virtual void clear() override = 0 {
 		se_work_station<domain_t, config_t>::clear();
 		remove_all_flags();
 		base_config.reset();
@@ -177,13 +177,13 @@ public:
 		try {
 			std::lock_guard<std::mutex> locker(if_locker);
 
+			base_config.reset();
+
 			auto* cfg = dynamic_cast<config_type*>(config.get());
 
 			if (!is_flag_set(working_status, status_flags::SETUP) && cfg) {
 
-				config_base = std::shared_ptr<config_type>(cfg);
-
-				setup_services();
+				base_config = std::shared_ptr<config_type>(cfg);
 
 				set_flag(working_status, status_flags::SETUP);
 

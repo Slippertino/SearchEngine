@@ -4,15 +4,22 @@
 #include <fstream>
 #include <vector>
 #include <optional>
-#include <core/se_json.hpp>
-#include <core/se_config/se_config.hpp>
+#include "se_json.hpp"
+#include "se_config/se_config.hpp"
+
+enum class indexing_modes {
+	LOWER_BOUND = -1,
+	FULL,
+	SELECTIVE,
+	UPPER_BOUND
+};
 
 class pi_config : public se_config {
 private:
 	std::map<std::string, std::string> database;
-	SE_CONFIG_REAL_PROPERTY(se_config, std::vector<std::string>, sources, sources, sources)
-	SE_CONFIG_REAL_PROPERTY(se_config, size_t, indexing_mode, indexing_mode, indexing_mode)
-	SE_CONFIG_REAL_PROPERTY(se_config, size_t, power_level, power_level, power_level)
+	SE_CONFIG_REAL_PROPERTY(se_config, std::vector<std::string>, sources, sources, sources, {})
+	SE_CONFIG_REAL_PROPERTY(se_config, size_t, indexing_mode, indexing_mode, indexing_mode, -1)
+	SE_CONFIG_REAL_PROPERTY(se_config, size_t, power_level, power_level, power_level, -1)
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
 		pi_config, 

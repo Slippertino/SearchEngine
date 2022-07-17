@@ -1,16 +1,16 @@
 #pragma once
 
 #include <cpr/cpr.h>
-#include <tools/html_text_analyzer.hpp>
-#include <thread_safe_containers/thread_safe_queue.hpp>
-#include <thread_safe_containers/thread_safe_unordered_map.hpp>
-#include "../../se_service.hpp"
-#include "../pi_messages.h"
-#include "../../se_services_infrastructure/se_services_communication.hpp"
+#include <search_engine_analyzers/tools/html_text_analyzer.hpp>
+#include <thread_extensions/thread_safe_containers/thread_safe_queue.hpp>
+#include <thread_extensions/thread_safe_containers/thread_safe_unordered_map.hpp>
+#include <core/se_service.hpp>
+#include <core/builders/se_service_builder.hpp>
+#include "../messages/pi_internal_messages.hpp"
 #include "../pi_config.hpp"
 
-class pi_page_analyzer_service : public se_service<pi_page_analyzer_service, pi_config> {
-	SE_SERVICE(pi_page_analyzer_service)
+class pi_page_analyzer_service final : public se_service<pi_page_analyzer_service, pi_config> {
+	SE_SERVICE(pi_page_analyzer_service, page_analyzer_service)
 
 private:
 	static const size_t max_rejected_requests;
@@ -30,7 +30,7 @@ private:
 		if (stop_flag)
 			return;
 
-		MAKE_RESPONSE(url_to_analyze, (
+		MAKE_RESPONSE(url_to_analyze_response, (
 			msg.id, 
 			info.first.page_encoding, 
 			string_enc{ info.first.content, info.first.page_encoding },
@@ -49,7 +49,7 @@ private:
 		if (stop_flag)
 			return;
 
-		MAKE_RESPONSE(page_info, (
+		MAKE_RESPONSE(page_info_response, (
 			msg.id,
 			info.first.page_encoding,
 			info.first.text_excerpts,
@@ -133,47 +133,47 @@ private:
 	}
 
 protected:
-	void setup_base(pi_config* config) override {}
+	void setup_base(pi_config* config) override final {}
 
-	void clear() override {
+	void clear() override final {
 		se_service<pi_page_analyzer_service, pi_config>::clear();
 		info_storage.clear();
 		source      .clear();
-	}
-
-public:
-	pi_page_analyzer_service(size_t id, const fs::path& root, const std::shared_ptr<se_router>& in_router) : 
-		se_service(id, root / R"(services)" / get_full_name(get_component_name()), in_router)
-	{ }
-
-	std::string get_component_name() const override {
-		return std::string("page_analyzer_service");
 	}
 };
 
 const size_t pi_page_analyzer_service::max_rejected_requests = 50;
 
 template<>
-class builder<pi_page_analyzer_service> : public abstract_service_builder<pi_page_analyzer_service> {
+class se_builder_imp<pi_page_analyzer_service> final : public se_service_builder<pi_page_analyzer_service> {
 protected:
-	void add_subscriptions(const service_ptr& service) const override {
-		service->router->subscribe<url_to_analyze_request>(service);
-		service->router->subscribe<page_info_request>(service);
+	void configure_own_network(const object_ptr& service) const override final {
+		service
+			->subscribe(service->internal_switch, typeid(url_to_analyze_response).name())
+			->subscribe(service->internal_switch, typeid(page_info_response).name());
 	}
 
-	void add_power_distribution(const service_ptr& service) const override {
-		service->power_distribution.push_back({ &pi_page_analyzer_service::page_analyze_handler, 1 });
-		service->power_distribution.push_back({ &pi_page_analyzer_service::requests_handler,     1 });
+	void configure_switches_network(const object_ptr& service) const override final {
+		service->internal_switch
+			->subscribe(service, typeid(url_to_analyze_request).name())
+			->subscribe(service, typeid(page_info_request).name());
 	}
 
-	void add_request_responders(const service_ptr& service) const override {
-		service->responders.insert(typeid(url_to_analyze_request).name(), 
-								   &pi_page_analyzer_service::url_to_analyze_request_responder);
-		service->responders.insert(typeid(page_info_request).name(),
-								   &pi_page_analyzer_service::page_info_request_responder);
+	void add_request_responders(const object_ptr& service) const override final {
+		service->responders = {
+			{ typeid(url_to_analyze_request).name(), &pi_page_analyzer_service::url_to_analyze_request_responder },
+			{ typeid(page_info_request).name(),      &pi_page_analyzer_service::page_info_request_responder      },
+		};
 	}
 
-	void add_unused_response_type_names(const service_ptr& service) const override {
+	void add_unused_response_type_names(const object_ptr& service) const override final {
 		return;
+	}
+
+	void add_power_distribution(const object_ptr& service) const override final {
+		service->power_distribution = {
+			{ &pi_page_analyzer_service::page_analyze_handler, 1 },
+			{ &pi_page_analyzer_service::requests_handler,     1 },
+		};
 	}
 };
