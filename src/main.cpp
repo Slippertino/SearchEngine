@@ -29,6 +29,7 @@
 //#include "builders/se_service_builder.hpp"
 //#include "se_domain.hpp"
 #include "se_db_entities/se_db_connection.hpp"
+#include "search_engine_analyzers/tools/url_analyzer.hpp"
 
 const std::filesystem::path configure_path = std::filesystem::path(R"(..\\..\\..\\configuration.json)");
 
