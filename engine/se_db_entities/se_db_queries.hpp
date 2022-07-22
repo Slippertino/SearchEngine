@@ -7,8 +7,7 @@
 #include <core/messages/message_core.hpp>
 #include <thread_extensions/thread_safe_containers/thread_safe_unordered_map.hpp>
 
-class se_db_queries 
-{
+class se_db_queries {
 protected:
 	using query_generator = std::function<std::vector<std::string>(const std::shared_ptr<context>& args)>;
 

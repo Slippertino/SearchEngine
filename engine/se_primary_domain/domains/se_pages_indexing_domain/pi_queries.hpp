@@ -1,36 +1,60 @@
 #pragma once
 
-#include <engine/db_entities/se_db_queries.hpp>
-#include "pi_internal_messages.hpp"
+#include <engine/se_db_entities/se_db_queries.hpp>
+#include "messages/pi_internal_messages.hpp"
 
 class pi_queries : public se_db_queries
 {
 protected:
 	thread_safe_unordered_map<std::string, query_generator> get_message_name_query_interpreter() const override {
 		return {
-			{ typeid(init_database_request).name(),        &pi_queries::get_init_database_queries		 },
-			{ typeid(is_unique_page_url_request).name(),   &pi_queries::get_is_unique_page_url_queries   },
-			{ typeid(record_page_info_request).name(),     &pi_queries::get_record_page_info_queries     },
-			{ typeid(sites_list_recording_request).name(), &pi_queries::get_sites_list_recording_queries },
-			{ typeid(page_and_site_id_request).name(),     &pi_queries::get_page_and_site_id_queries     },
-			{ typeid(record_word_info_request).name(),     &pi_queries::get_record_word_info_queries     },
-			{ typeid(record_word_to_index_request).name(), &pi_queries::get_record_word_to_index_queries },
+			{ typeid(init_database_with_truncate_request).name(),     &pi_queries::get_init_database_with_truncate_queries	  },
+			{ typeid(init_database_with_no_truncate_request).name(),  &pi_queries::get_init_database_with_no_truncate_queries },
+			{ typeid(page_info_delete_request).name(),				  &pi_queries::get_page_info_delete_queries				  },
+			{ typeid(is_unique_page_url_request).name(),			  &pi_queries::get_is_unique_page_url_queries			  },
+			{ typeid(record_page_info_request).name(),				  &pi_queries::get_record_page_info_queries				  },
+			{ typeid(site_url_recording_request).name(),			  &pi_queries::get_site_url_recording_queries			  },
+			{ typeid(page_and_site_id_request).name(),				  &pi_queries::get_page_and_site_id_queries				  },
+			{ typeid(record_word_info_request).name(),				  &pi_queries::get_record_word_info_queries				  },
+			{ typeid(record_word_to_index_request).name(),			  &pi_queries::get_record_word_to_index_queries			  },
 		};
 	}
 
 private:
-	static std::vector<std::string> get_init_database_queries(const std::shared_ptr<context>& args) {
+	static std::vector<std::string> get_init_database_with_truncate_queries(const std::shared_ptr<context>& args) {
 		std::vector<std::string> res;
 		std::ostringstream ostr;
 
-		auto req = *static_cast<init_database_request*>(args.get());
+		auto req_ptr = static_cast<init_database_with_truncate_request*>(args.get());
+		auto req = *req_ptr;
 
 		to_mysql_format({ &req.database_name });
 
 		ostr << "drop database if exists " << req.database_name.str << ";";
 		reset(ostr, res);
 
-		ostr << "create database " << req.database_name.str << ";";
+		auto remains = get_init_database_with_no_truncate_queries(
+			std::make_shared<init_database_with_no_truncate_request>(req_ptr->database_name)
+		);
+
+		std::copy(
+			std::make_move_iterator(remains.begin()),
+			std::make_move_iterator(remains.end()),
+			std::back_inserter(res)
+		);
+
+		return res;
+	}
+
+	static std::vector<std::string> get_init_database_with_no_truncate_queries(const std::shared_ptr<context>& args) {
+		std::vector<std::string> res;
+		std::ostringstream ostr;
+
+		auto req = *static_cast<init_database_with_no_truncate_request*>(args.get());
+
+		to_mysql_format({ &req.database_name });
+
+		ostr << "create database if not exists" << req.database_name.str << ";";
 		reset(ostr, res);
 
 		ostr << "use " << req.database_name.str << ";";
@@ -51,6 +75,9 @@ private:
 			 << "if not exists " << sites_list_tb_name << " ("
 			 << "id int primary key auto_increment,"
 			 << "url mediumtext not null);";
+		reset(ostr, res);
+
+		ostr << "create unique index " << sites_list_tb_name << "_index on " << sites_list_tb_name << "(url(50));";
 		reset(ostr, res);
 
 		ostr << "create table "
@@ -82,15 +109,45 @@ private:
 		return res;
 	}
 
-	static std::vector<std::string> get_sites_list_recording_queries(const std::shared_ptr<context>& args) {
+	static std::vector<std::string> get_page_info_delete_queries(const std::shared_ptr<context>& args) {
 		std::vector<std::string> res;
 		std::ostringstream ostr;
 
-		auto req = *static_cast<site_recording_request*>(args.get());
+		auto req = *static_cast<page_info_delete_request*>(args.get());
+
+		to_mysql_format({ &req.url });
+
+		ostr << "update " << words_info_tb_name << " "
+			 << "set frequency =  frequency - 1 "
+			 << "where id in ("
+			 << "	select word_id from " << search_index_tb_name
+			 << "	where page_id in ( "
+			 << "		select id from " << pages_info_tb_name
+			 << "		where path = \"" << req.url.str << "\""
+			 << "	)"
+			 << ");";
+		reset(ostr, res);
+
+		ostr << "delete from " << words_info_tb_name << " "
+			 << "where frequency = 0";
+		reset(ostr, res);
+
+		ostr << "delete from " << pages_info_tb_name << " "
+			 << "where path = \"" << req.url.str << "\";";
+		reset(ostr, res);
+
+		return res;
+	}
+
+	static std::vector<std::string> get_site_url_recording_queries(const std::shared_ptr<context>& args) {
+		std::vector<std::string> res;
+		std::ostringstream ostr;
+
+		auto req = *static_cast<site_url_recording_request*>(args.get());
 
 		to_mysql_format({ &req.site });
 
-		ostr << "insert into " << sites_list_tb_name << " (url) values"
+		ostr << "insert ignore into " << sites_list_tb_name << " (url) values"
 			 << "(\"" << req.site.str << "\");";
 		reset(ostr, res);
 

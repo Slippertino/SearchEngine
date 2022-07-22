@@ -193,7 +193,7 @@ private:
 	}
 
 protected:
-	void setup_base(pi_config* config) override {}
+	void setup_base(pi_config* config) override final {}
 
 	void clear() override final {
 		se_service<pi_page_indexing_service, pi_config>::clear();

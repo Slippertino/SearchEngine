@@ -158,8 +158,7 @@ protected:
 					std::pair<std::string, msg_response> msg_info{ resp_info.first, {} };
 					EXECUTE_CONTROLLED_WAITING(msg_info, msg_info, try_erase_response(msg_info))
 					SE_LOG(message_type::RESPONSE, "Received response : " << msg_info.second.body->to_string() << "\n");
-				}
-				catch (const std::exception& ex) {
+				} catch (const std::exception& ex) {
 					SE_LOG(message_type::RESPONSE, "Error while trying to get response with following body type: " << resp_info.second
 						<< "! Message : " << ex.what() << "\n");
 				}
@@ -171,8 +170,7 @@ protected:
 		try {
 			EXECUTE_CONTROLLED_WAITING(msg_info, msg_info, try_erase_request(msg_info))
 			SE_LOG(message_type::REQUEST, "Received request : " << msg_info.second.body->to_string() << "\n");
-		}
-		catch (const std::exception& ex) {
+		} catch (const std::exception& ex) {
 			std::cout << "Error while trying to get request! Message : " << ex.what() << "\n";
 			SE_LOG(message_type::REQUEST, "Error while trying to get request! Message : " << ex.what() << "\n");
 		}
@@ -185,8 +183,7 @@ protected:
 			EXECUTE_CONTROLLED_WAITING(msg_info, msg_info, try_erase_response(msg_info))
 			body = *static_cast<context_t*>(msg_info.second.body.get());
 			SE_LOG(message_type::RESPONSE, "Received response : " << body.to_string() << "\n");
-		}
-		catch (const std::exception& ex) {
+		} catch (const std::exception& ex) {
 			std::cout << "Error while trying to get response with following body type: " << typeid(context_t).name()
 					  << "! Message : " << ex.what() << "\n";
 			SE_LOG(message_type::RESPONSE, "Error while trying to get response with following body type: " << typeid(context_t).name()

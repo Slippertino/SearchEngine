@@ -4,11 +4,23 @@
 #include <filesystem>
 #include <optional>
 #include "se_json.hpp"
+#include <search_engine_analyzers/text_property_types/se_encoding.hpp>
 
 namespace fs = std::filesystem;
 
 class se_config {
+protected:
+	se_encoding encoding;
+
 public:
+	se_config() = delete;
+	se_config(se_encoding enc) : encoding(enc) 
+	{ }
+
+	se_encoding get_encoding() const {
+		return encoding;
+	}
+
 	virtual void load(const fs::path& path) = 0;
 	virtual std::string get_dump() const = 0;
 };
@@ -20,25 +32,23 @@ public:
 	}
 };
 
-
-#define SE_CONFIG_PROPERTY(config_type, property_type, property_name, get_expression, set_expression) \
+#define SE_CFG_PROPERTY(type, name, default_value, GET, SET) \
+private: \
+	type name = default_value; \
 public: \
-	property_type get_##property_name() const { \
+	GET \
+	SET \
+
+#define SE_PROPERTY_GET(type, name, expression) \
+	type get_##name() const { \
 		try { \
-			return get_expression; \
+			return expression; \
 		} catch (...) { \
 			throw se_config_exception(); \
 		} \
 	} \
-	config_type& set_##property_name(const property_type##& in_##property_name) { \
-		set_expression = in_##property_name; \
-		return *this; \
+
+#define SE_PROPERTY_SET(name, alias, alias_type, expression) \
+	void set_##name(const alias_type##& alias) { \
+		expression; \
 	} 
-
-#define SE_CONFIG_REAL_PROPERTY(config_type, property_type, property_name, get_expression, set_expression, default_value) \
-private: \
-	property_type property_name = default_value; \
-	SE_CONFIG_PROPERTY(config_type, property_type, property_name, get_expression, set_expression) \
-
-#define SE_CONFIG_VIRTUAL_PROPERTY(config_type, property_type, property_name, get_expression, set_expression) \
-	SE_CONFIG_PROPERTY(config_type, property_type, property_name, get_expression, set_expression)

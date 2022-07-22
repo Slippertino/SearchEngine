@@ -1,26 +1,24 @@
 #pragma once
 
-#include <tools/se_encoder.hpp>
-#include <tools/url_analyzer.hpp>
-#include <thread_safe_containers/thread_safe_queue.hpp>
-#include <thread_safe_containers/thread_safe_unordered_map.hpp>
-#include <semaphore.hpp>
-#include "../../se_service.hpp"
-#include "../pi_messages.h"
-#include "../../se_services_infrastructure/se_services_communication.hpp"
-#include <thread_pool.hpp>
+#include <core/se_service.hpp>
+#include <core/builders/se_service_builder.hpp>
+#include <search_engine_analyzers/tools/se_encoder.hpp>
+#include <search_engine_analyzers/tools/url_analyzer.hpp>
+#include <thread_extensions/thread_safe_containers/thread_safe_queue.hpp>
+#include <thread_extensions/thread_safe_containers/thread_safe_unordered_map.hpp>
+#include <thread_extensions/semaphore.hpp>
+#include "../messages/pi_internal_messages.hpp"
 #include "../pi_config.hpp"
-
 
 class pi_page_dumper_service : public se_service<pi_page_dumper_service, pi_config> {
 private:
-	SE_SERVICE(pi_page_dumper_service)
+	SE_SERVICE(pi_page_dumper_service, page_dumper_service)
 
 	#define CHECK_FOR_STOP(link_prefix) if (check_for_stop(link_prefix)) continue;
 
-
-
 private:
+	indexing_modes ind_mode;
+
 	thread_safe_queue<std::string> keys;
 	thread_safe_unordered_map<std::string, std::pair<std::string, std::string>> source;
 
@@ -168,8 +166,22 @@ private:
 
 protected:
 	void setup_base(pi_config* config) override {
+		ind_mode = config->get_indexing_mode();
+
 		for (auto& url : config->get_sources()) {
-			add_to_buffer({ url, url });
+
+			auto enc = config->get_encoding();
+
+			url_analyzer u_a(enc);
+
+			if (u_a.is_valid_url(url)) {
+				auto root = u_a.get_root(url);
+
+				se_encoder::encode(url,  enc, DEFAULT_ENCODING);
+				se_encoder::encode(root, enc, DEFAULT_ENCODING);
+
+				add_to_buffer({ url, root });
+			}
 		}
 	}
 
@@ -179,40 +191,45 @@ protected:
 		source   .clear();
 		semaphore.clear();
 	}
-
-public:
-	pi_page_dumper_service() = delete;
-	pi_page_dumper_service(size_t id, const fs::path& root, const std::shared_ptr<se_router>& in_router) : 
-		se_service(id, root / R"(services)" / get_full_name(get_component_name()), in_router),
-		semaphore(2)
-	{ }
-
-	std::string get_component_name() const override {
-		return std::string("page_dumper_service");
-	}
 };
 
 template<>
-class builder<pi_page_dumper_service> : public abstract_service_builder<pi_page_dumper_service>
+class se_builder_imp<pi_page_dumper_service> : public se_service_builder<pi_page_dumper_service>
 {
 protected:
-	void add_subscriptions(const service_ptr& service) const override {
-		service->router->subscribe<url_to_analyze_response>(service);
-		service->router->subscribe<record_page_info_response>(service);
-		service->router->subscribe<is_unique_page_url_response>(service);
-		service->router->subscribe<site_recording_response>(service);
-		service->router->subscribe<page_indexing_response>(service);
+	void configure_own_network(const object_ptr& service) const override final {
+		service
+			->subscribe(service->internal_switch, typeid(page_info_delete_request).name())
+			->subscribe(service->internal_switch, typeid(url_to_analyze_request).name())
+			->subscribe(service->internal_switch, typeid(record_page_info_request).name())
+			->subscribe(service->internal_switch, typeid(is_unique_page_url_request).name())
+			->subscribe(service->internal_switch, typeid(site_url_recording_request).name())
+			->subscribe(service->internal_switch, typeid(page_indexing_request).name());
 	}
 
-	void add_power_distribution(const service_ptr& service) const override {
-		service->power_distribution.push_back({ &pi_page_dumper_service::page_dumper_handler, 1 });
+	void configure_switches_network(const object_ptr& service) const override final {
+		service->internal_switch
+			->subscribe(service, typeid(page_info_delete_response).name())
+			->subscribe(service, typeid(url_to_analyze_response).name())
+			->subscribe(service, typeid(record_page_info_response).name())
+			->subscribe(service, typeid(is_unique_page_url_response).name())
+			->subscribe(service, typeid(site_url_recording_response).name())
+			->subscribe(service, typeid(page_indexing_response).name());
 	}
 
-	void add_request_responders(const service_ptr& service) const override {
+	void add_request_responders(const object_ptr& service) const override final {
 		return;
 	}
 
-	void add_unused_response_type_names(const service_ptr& service) const override {
-		service->unused_response_type_names.insert(typeid(page_indexing_request).name(), nullptr);
+	void add_unused_response_type_names(const object_ptr& service) const override final {
+		service->unused_response_type_names = {
+			{ typeid(page_indexing_request).name(), nullptr },
+		};
+	}
+
+	void add_power_distribution(const object_ptr& service) const override final {
+		service->power_distribution = {
+			{ &pi_page_dumper_service::page_dumper_handler, 1 }
+		};
 	}
 };

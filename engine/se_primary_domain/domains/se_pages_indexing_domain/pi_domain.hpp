@@ -108,13 +108,17 @@ class se_cfg_validator_imp<pi_domain, pi_config> final : public se_cfg_validator
 private:
 	void valid_existence(domain_ptr domain, config_ptr config) const {
 		if (!config) {
-			throw std::exception("Error! Domain was not setup or it was a try to setup with an unsuitable config file!");
+			throw std::exception("Error! Domain was not setup or it was a try to setup with an unsuitable configuration file!");
 		}
 	}
 
 	void valid_db_connection(domain_ptr domain, config_ptr config) const {
-		auto con = pi_db_responder_service::get_mysql_connection(*config);
-		con->close();
+		try {
+			auto con = pi_db_responder_service::get_mysql_connection(*config);
+			con->close();
+		} catch (const std::exception& ex) {
+			throw std::exception("Error! Connection to database was failed! " + ex.what());
+		}
 	}
 
 	void valid_sources(domain_ptr domain, config_ptr config) const {

@@ -5,30 +5,58 @@
 #include <search_engine_analyzers/text_property_types/se_encoding.hpp>
 #include <search_engine_analyzers/text_property_types/se_language.hpp>
 
-struct sites_list_recording_request : context {
+struct site_url_recording_request : context {
 	string_enc site;
 
 	SE_CONTEXT(
-		sites_list_recording_request, -1,
+		site_url_recording_request, -1,
 		site
 	)
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-		sites_list_recording_request,
+		site_url_recording_request,
 		site
 	)
 };
 
-struct sites_list_recording_response : context {
+struct site_url_recording_response : context {
 	response_status status;
 
 	SE_CONTEXT(
-		sites_list_recording_response, -1,
+		site_url_recording_response, -1,
 		status
 	)
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-		sites_list_recording_response,
+		site_url_recording_response,
+		status
+	)
+};
+
+struct page_info_delete_request : context {
+	string_enc url;
+
+	SE_CONTEXT(
+		page_info_delete_request, -1,
+		url
+	)
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+		page_info_delete_request,
+		url
+	)
+};
+
+struct page_info_delete_response : context {
+	response_status status;
+
+	SE_CONTEXT(
+		page_info_delete_response, -1,
+		status
+	)
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+		page_info_delete_response,
 		status
 	)
 };
@@ -141,30 +169,58 @@ struct is_unique_page_url_response : context {
 	)
 };
 
-struct init_database_request : context {
+struct init_database_with_truncate_request : context {
 	string_enc database_name;
 
 	SE_CONTEXT(
-		init_database_request, -1,
+		init_database_with_truncate_request, -1,
 		database_name
 	)
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-		init_database_request,
+		init_database_with_truncate_request,
 		database_name
 	)
 };
 
-struct init_database_response : context {
+struct init_database_with_truncate_response : context {
 	response_status status;
 
 	SE_CONTEXT(
-		init_database_response, -1,
+		init_database_with_truncate_response, -1,
 		status
 	)
 
 	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-		init_database_response,
+		init_database_with_truncate_response,
+		status
+	)
+};
+
+struct init_database_with_no_truncate_request : context {
+	string_enc database_name;
+
+	SE_CONTEXT(
+		init_database_with_no_truncate_request, -1,
+		database_name
+	)
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+		init_database_with_no_truncate_request,
+		database_name
+	)
+};
+
+struct init_database_with_no_truncate_response : context {
+	response_status status;
+
+	SE_CONTEXT(
+		init_database_with_no_truncate_response, -1,
+		status
+	)
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+		init_database_with_no_truncate_response,
 		status
 	)
 };

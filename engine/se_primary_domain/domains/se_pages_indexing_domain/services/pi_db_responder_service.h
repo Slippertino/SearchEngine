@@ -11,28 +11,30 @@
 #include "../pi_config.hpp"
 
 class pi_db_responder_service final : public se_service<pi_db_responder_service, pi_config>,
-								public se_db_responder<pi_queries> {
+									  public se_db_responder<pi_queries> {
 	SE_SERVICE(pi_db_responder_service, db_responder_service)
 
 private:
-	void init_database_request_responder(msg_request msg) {
+	void init_database_with_truncate_request_responder(msg_request msg) {
 		responder_components comps;
-		get_components(msg, typeid(init_database_request).name(), comps);
+		get_components(msg, typeid(init_database_with_truncate_request).name(), comps);
 
-		init_database_response resp;
+		init_database_with_truncate_response resp;
 
 		try {
-			for (auto& cur : comps.queries)
+			for (auto& cur : comps.queries) {
 				auto count = comps.statement->executeUpdate(cur);
+			}
+
 			resp.status.status = runtime_status::SUCCESS;
 			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };
 		}
 		catch (const std::exception& ex) {
 			resp.status.status = runtime_status::FAIL;
-			resp.status.message = { "Fail query!\n INITIALIZATION : " + std::string(ex.what()), encoding_t::UTF_8 };
+			resp.status.message = { "Fail query!\n INITIALIZATION WITH TRUNCATE : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
-		MAKE_RESPONSE(init_database_response, (
+		MAKE_RESPONSE(init_database_with_truncate_response, (
 			msg.id,
 			resp
 		))
@@ -40,11 +42,65 @@ private:
 		free_components(comps);
 	}
 
-	void sites_list_recording_request_responder(msg_request msg) {
+	void init_database_with_no_truncate_request_responder(msg_request msg) {
 		responder_components comps;
-		get_components(msg, typeid(site_recording_request).name(), comps);
+		get_components(msg, typeid(init_database_with_no_truncate_request).name(), comps);
 
-		site_recording_response resp;
+		init_database_with_no_truncate_response resp;
+
+		try {
+			for (auto& cur : comps.queries) {
+				auto count = comps.statement->executeUpdate(cur);
+			}
+
+			resp.status.status = runtime_status::SUCCESS;
+			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };
+		}
+		catch (const std::exception& ex) {
+			resp.status.status = runtime_status::FAIL;
+			resp.status.message = { "Fail query!\n INITIALIZATION WITH NO TRUNCATE: " + std::string(ex.what()), encoding_t::UTF_8 };
+		}
+
+		MAKE_RESPONSE(init_database_with_no_truncate_response, (
+			msg.id,
+			resp
+		))
+
+		free_components(comps);
+	}
+
+	void page_info_delete_request_responder(msg_request msg) {
+		responder_components comps;
+		get_components(msg, typeid(page_info_delete_request).name(), comps);
+
+		page_info_delete_response resp;
+
+		try {
+			for (auto& cur : comps.queries) {
+				auto count = comps.statement->executeUpdate(cur);
+			}
+
+			resp.status.status = runtime_status::SUCCESS;
+			resp.status.message = { "Successful query!\n", encoding_t::UTF_8 };
+		}
+		catch (const std::exception& ex) {
+			resp.status.status = runtime_status::FAIL;
+			resp.status.message = { "Fail query!\n PAGE_INFO_DELETE : " + std::string(ex.what()), encoding_t::UTF_8 };
+		}
+
+		MAKE_RESPONSE(page_info_delete_response, (
+			msg.id,
+			resp
+		))
+
+		free_components(comps);
+	}
+
+	void site_url_recording_request_responder(msg_request msg) {
+		responder_components comps;
+		get_components(msg, typeid(site_url_recording_request).name(), comps);
+
+		site_url_recording_response resp;
 
 		try {
 			auto count = comps.statement->executeUpdate(comps.queries[0]);
@@ -61,7 +117,7 @@ private:
 			resp.status.message = { "Fail query!\n SITES_LIST_RECORDING : " + std::string(ex.what()), encoding_t::UTF_8 };
 		}
 
-		MAKE_RESPONSE(site_recording_response, (
+		MAKE_RESPONSE(site_url_recording_response, (
 			msg.id,
 			resp
 		))
@@ -224,11 +280,23 @@ private:
 	}
 
 protected:
+	template<class req_t, class resp_t>
+	std::string create_init_request(const std::string& db_name) {
+		resp_t resp;
+		make_request_with_response<req_t, resp_t>(
+			resp, 
+			string_enc{ db_name, DEFAULT_ENCODING }
+		);
+
+		return resp.to_string();
+	}
+
 	void setup_base(pi_config* config) override final {
 		std::thread init_thread(&pi_db_responder_service::requests_handler, this);
 		init_thread.detach();
 
 		auto db_name = config->get_db_name();
+		auto mode    = config->get_indexing_mode();
 
 		for (auto i = 0; i < pool.size(); ++i) {
 			try {
@@ -242,12 +310,17 @@ protected:
 			}
 		}
 
-		MAKE_REQUEST_WITH_RESPONSE(resp, init_database_request, init_database_response, (
-			resp,
-			string_enc{ db_name, DEFAULT_ENCODING }
-		))
+		std::string setup_msg = "unknown";
 
-		SE_LOG("Setup: " << resp.to_string() << "\n");
+		if (mode == indexing_modes::FULL) {
+			setup_msg 
+				= create_init_request<init_database_with_truncate_request, init_database_with_truncate_response>(db_name);
+		} else if (mode == indexing_modes::SELECTIVE) {
+			setup_msg 
+				= create_init_request<init_database_with_no_truncate_request, init_database_with_no_truncate_response>(db_name);
+		}
+
+		SE_LOG("Setup: " << setup_msg << "\n");
 	}
 
 	void clear() override final {
@@ -266,11 +339,14 @@ class se_builder_imp<pi_db_responder_service> final : public se_service_builder<
 protected:
 	void configure_own_network(const object_ptr& service) const override final {
 		service
-			->subscribe(service->internal_switch, typeid(init_database_request).name())
-			->subscribe(service->internal_switch, typeid(init_database_response).name())
+			->subscribe(service->internal_switch, typeid(init_database_with_truncate_request).name())
+			->subscribe(service->internal_switch, typeid(init_database_with_truncate_response).name())
+			->subscribe(service->internal_switch, typeid(init_database_with_no_truncate_request).name())
+			->subscribe(service->internal_switch, typeid(init_database_with_no_truncate_response).name())
+			->subscribe(service->internal_switch, typeid(page_info_delete_response).name())
 			->subscribe(service->internal_switch, typeid(record_page_info_response).name())
 			->subscribe(service->internal_switch, typeid(is_unique_page_url_response).name())
-			->subscribe(service->internal_switch, typeid(sites_list_recording_response).name())
+			->subscribe(service->internal_switch, typeid(site_url_recording_response).name())
 			->subscribe(service->internal_switch, typeid(page_and_site_id_response).name())
 			->subscribe(service->internal_switch, typeid(record_word_info_response).name())
 			->subscribe(service->internal_switch, typeid(record_word_to_index_response).name());
@@ -278,11 +354,14 @@ protected:
 
 	void configure_switches_network(const object_ptr& service) const override final {
 		service->internal_switch
-			->subscribe(service, typeid(init_database_request).name())
-			->subscribe(service, typeid(init_database_response).name())
+			->subscribe(service, typeid(init_database_with_truncate_request).name())
+			->subscribe(service, typeid(init_database_with_truncate_response).name())
+			->subscribe(service, typeid(init_database_with_no_truncate_request).name())
+			->subscribe(service, typeid(init_database_with_no_truncate_response).name())
+			->subscribe(service, typeid(page_info_delete_request).name())
 			->subscribe(service, typeid(record_page_info_request).name())
 			->subscribe(service, typeid(is_unique_page_url_request).name())
-			->subscribe(service, typeid(sites_list_recording_request).name())
+			->subscribe(service, typeid(site_url_recording_request).name())
 			->subscribe(service, typeid(page_and_site_id_request).name())
 			->subscribe(service, typeid(record_word_info_request).name())
 			->subscribe(service, typeid(record_word_to_index_request).name());
@@ -290,13 +369,15 @@ protected:
 
 	void add_request_responders(const object_ptr& service) const override final {
 		service->responders = {
-			{ typeid(init_database_request).name(),         &pi_db_responder_service::init_database_request_responder        },
-			{ typeid(is_unique_page_url_request).name(),    &pi_db_responder_service::is_unique_page_url_request_responder   },
-			{ typeid(record_page_info_request).name(),      &pi_db_responder_service::record_page_info_request_responder	 },
-			{ typeid(sites_list_recording_request).name(),  &pi_db_responder_service::sites_list_recording_request_responder },
-			{ typeid(page_and_site_id_request).name(),      &pi_db_responder_service::page_and_site_id_request_responder	 },
-			{ typeid(record_word_info_request).name(),      &pi_db_responder_service::record_word_info_request_responder	 },
-			{ typeid(record_word_to_index_request).name(),  &pi_db_responder_service::record_word_to_index_request_responder },
+			{ typeid(init_database_with_truncate_request).name(),      &pi_db_responder_service::init_database_with_truncate_request_responder     },
+			{ typeid(init_database_with_no_truncate_request).name(),   &pi_db_responder_service::init_database_with_no_truncate_request_responder  },
+			{ typeid(page_info_delete_request).name(),				   &pi_db_responder_service::page_info_delete_request_responder				   },
+			{ typeid(is_unique_page_url_request).name(),			   &pi_db_responder_service::is_unique_page_url_request_responder			   },
+			{ typeid(record_page_info_request).name(),				   &pi_db_responder_service::record_page_info_request_responder				   },
+			{ typeid(site_url_recording_request).name(),			   &pi_db_responder_service::site_url_recording_request_responder			   },
+			{ typeid(page_and_site_id_request).name(),				   &pi_db_responder_service::page_and_site_id_request_responder				   },
+			{ typeid(record_word_info_request).name(),				   &pi_db_responder_service::record_word_info_request_responder				   },
+			{ typeid(record_word_to_index_request).name(),			   &pi_db_responder_service::record_word_to_index_request_responder			   },
 		};
 	}
 

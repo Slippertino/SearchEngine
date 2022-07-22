@@ -30,6 +30,7 @@ protected:
 
 	void free_components(responder_components& comps) {
 		connections.add(comps.connection);
+		comps.statement->close();
 	}
 
 public:

@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     setlocale(LC_ALL, "ru");
     std::srand(std::time(nullptr));
 
-    auto config = std::shared_ptr<pi_config>(new pi_config());
+    auto config = std::shared_ptr<pi_config>(new pi_config(DEFAULT_ENCODING));
     config->load(configure_path);
 
     /*auto config = std::shared_ptr<se_config>(new pi_config());
